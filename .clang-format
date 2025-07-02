@@ -1,0 +1,43 @@
+# Based on LLVM's .clang-format
+# https://github.com/llvm/llvm-project/blob/main/libcxx/.clang-format
+
+# Note that we don't specify the language in this file because some files are
+# detected as Cpp, but others are detected as ObjC and we want this formatting
+# to apply to all types of files.
+
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+BreakBeforeBraces: Linux
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveBitFields: Consecutive
+AlignEscapedNewlines: Right
+AlignOperands: AlignAfterOperator
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortLambdasOnASingleLine: All
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeConceptDeclarations: true
+BreakInheritanceList: BeforeColon
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: Always
+IndentWrappedFunctionNames: false
+InsertTrailingCommas: Wrapped
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+PackConstructorInitializers: NextLine
+
+PenaltyIndentedWhitespace: 2
+
+Standard: c++20
+SpacesInAngles: Never
+
+BreakTemplateDeclarations: Leave
+PointerAlignment: Left
+
+IndentPPDirectives: AfterHash
+ColumnLimit: 100

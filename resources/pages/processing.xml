@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<messages>
+    <message id='processing-page'>
+
+        <div class="card" style="m-2 w-50">
+            <div class="card-body">
+                ${title}
+
+            </div>
+        </div>
+
+    </message>
+</messages>

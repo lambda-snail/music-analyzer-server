@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<messages>
+    <message id='todo-item'>
+
+        <li class="list-group-item">
+            ${input-element}
+            <label class="form-check-label" for="$checkbox-{id}">${text}</label>
+        </li>
+
+    </message>
+
+    <message id="todo-list">
+        <ul class="list-group">
+            ${items}
+        </ul>
+    </message>
+</messages>
