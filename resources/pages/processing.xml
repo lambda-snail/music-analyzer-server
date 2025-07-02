@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <messages>
-    <message id='processing-page'>
+    <message id="processing-page">
 
         <div class="card" style="m-2 w-50">
             <div class="card-body">
-                ${title}
+                ${file-drop}
+
+                ${file-list}
 
             </div>
         </div>
 
+    </message>
+
+    <message id="file-view-component">
+        <ul class="list-group">
+            ${files}
+        </ul>
+    </message>
+
+    <message id="file-view-component-row">
+        <li class="list-group-item">${file-name}</li>
     </message>
 </messages>

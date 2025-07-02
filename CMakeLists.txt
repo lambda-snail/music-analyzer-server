@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 add_executable(todo main.cpp
         src/components/todo_item_view.cpp
         src/components/todo_item_view.hpp
-        src/components/todo_view.cpp
-        src/components/todo_view.hpp
+        src/components/file_view.cpp
+        src/components/file_view.hpp
         src/pages/processing_page.cpp
         src/pages/processing_page.hpp
         src/application/user.hpp
