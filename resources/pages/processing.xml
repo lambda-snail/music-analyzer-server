@@ -3,8 +3,13 @@
     <message id="processing-page">
 
         <div class="card" style="m-2 w-50">
+            <div class="card-header">
+                <div class="d-flex" style="gap:1rem">
+                    ${file-drop}
+                    <button class="btn btn-primary">Button 1</button>
+                </div>
+            </div>
             <div class="card-body">
-                ${file-drop}
 
                 ${file-list}
 
@@ -14,12 +19,14 @@
     </message>
 
     <message id="file-view-component">
-        <ul class="list-group">
-            ${files}
-        </ul>
+        <div class="container w-25 h-50">
+            <ul class="list-group">
+                ${files}
+            </ul>
+        </div>
     </message>
 
     <message id="file-view-component-row">
-        <li class="list-group-item">${file-name}</li>
+        <li class="list-group-item d-flex justify-content-between rounded">${file-name} <button class="btn btn-danger">Remove</button></li>
     </message>
 </messages>

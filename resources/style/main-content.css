@@ -113,3 +113,15 @@ body {
 .profile-info {
     transition: opacity 0.2s ease;
 }
+
+.ls-filedrop {
+    border-radius: 8px;
+    border: 0.1rem solid black;
+    width: 8rem;
+    /*height: 32px;*/
+    align-items: center;
+}
+
+.ls-filedrop:hover {
+    background-color: #e1e1e1;
+}

@@ -48,7 +48,7 @@
                     </div>
                 </nav>
 
-                <main class="main-content">
+                <main class="main-content flex-grow-1">
                     <div class="container-fluid">
                         ${main-content}
                     </div>
