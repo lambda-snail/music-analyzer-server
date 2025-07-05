@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.30)
-project(todo)
+project(music-analyzer-server)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(todo main.cpp
+add_executable(music-analyzer-server main.cpp
         src/components/todo_item_view.cpp
         src/components/todo_item_view.hpp
         src/components/file_view.cpp
@@ -21,18 +21,18 @@ add_executable(todo main.cpp
         src/pages/registration_view.cpp
         src/pages/registration_view.hpp)
 
-target_include_directories(todo PUBLIC src)
+target_include_directories(music-analyzer-server PUBLIC src)
 
-target_link_libraries(todo PUBLIC wt wthttp wtdbo wtdbosqlite3)
+target_link_libraries(music-analyzer-server PUBLIC wt wthttp wtdbo wtdbosqlite3)
 
 add_custom_command(
-        TARGET todo PRE_BUILD
+        TARGET music-analyzer-server PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/config
         ${CMAKE_BINARY_DIR}/config)
 
 add_custom_command(
-        TARGET todo PRE_BUILD
+        TARGET music-analyzer-server PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/resources
         ${CMAKE_BINARY_DIR}/resources)
