@@ -1,4 +1,5 @@
 #include "pages/authentication_page.hpp"
+#include "services/audio_features_service.hpp"
 #include "src/application/session.hpp"
 #include "src/components/file_view.hpp"
 #include "src/components/todo_item_view.hpp"
@@ -21,6 +22,7 @@
 #include <Wt/WServer.h>
 #include <Wt/WStackedWidget.h>
 #include <Wt/WTemplate.h>
+#include <curl/curl.h>
 
 // TODO: Merge into todo application
 class todo_application final : public Wt::WApplication
@@ -41,9 +43,11 @@ class todo_application final : public Wt::WApplication
     explicit todo_application(const Wt::WEnvironment& env,
                              Wt::Auth::AuthService& auth_service,
                              Wt::Auth::PasswordService& password_service,
-                             std::vector<std::unique_ptr<Wt::Auth::OAuthService>>& oauth_services)
+                             std::vector<std::unique_ptr<Wt::Auth::OAuthService>>& oauth_services,
+                             std::unique_ptr<LambdaSnail::music::services::AudioFeaturesService> service)
         : Wt::WApplication(env),
-          m_session(appRoot() + "auth.db", auth_service, password_service, oauth_services)
+          m_session(appRoot() + "auth.db", auth_service, password_service, oauth_services),
+          m_Service(std::move(service))
     {
         m_session.login().changed().connect(this, &todo_application::authEvent);
         WApplication::instance()->internalPathChanged().connect(
@@ -69,7 +73,7 @@ class todo_application final : public Wt::WApplication
         m_widget_stack = t->bindWidget("main-content", std::make_unique<Wt::WStackedWidget>());
 
         m_todo_page =
-            m_widget_stack->addWidget(std::move(std::make_unique<LambdaSnail::todo::ProcessingPage>()));
+            m_widget_stack->addWidget(std::move(std::make_unique<LambdaSnail::todo::ProcessingPage>(m_Service.get())));
 
         root()->addWidget(std::move(t));
     }
@@ -109,10 +113,10 @@ class todo_application final : public Wt::WApplication
 
   private:
     LambdaSnail::todo::application::Session m_session;
-
     Wt::WStackedWidget* m_widget_stack{};
-
     LambdaSnail::todo::ProcessingPage* m_todo_page{};
+
+    std::unique_ptr<LambdaSnail::music::services::AudioFeaturesService> m_Service;
 };
 
 // TODO: Find some better place to put this
@@ -156,15 +160,20 @@ int main(int argc, char** argv)
     Wt::Auth::PasswordService password_service(auth_service);
     std::vector<std::unique_ptr<Wt::Auth::OAuthService>> oauth_services;
 
+    curl_global_init(CURL_GLOBAL_ALL);
+
     try {
         Wt::WServer server{argc, argv, WTHTTP_CONFIGURATION};
-
         configure_auth(auth_service, password_service, oauth_services);
 
         server.addEntryPoint(Wt::EntryPointType::Application, [&](const Wt::WEnvironment& env) {
             // auto app = std::make_unique<TodoApplication>(env);
             auto app = std::make_unique<todo_application>(
-                env, auth_service, password_service, oauth_services);
+                env,
+                auth_service,
+                password_service,
+                oauth_services,
+                std::make_unique<LambdaSnail::music::services::AudioFeaturesService>());
 
             app->setTheme(std::make_shared<Wt::WBootstrap5Theme>());
             app->useStyleSheet("resources/style/main-content.css");
@@ -194,4 +203,6 @@ int main(int argc, char** argv)
     } catch (std::exception& e) {
         std::cerr << "exception: " << e.what() << '\n';
     }
+
+    curl_global_cleanup();
 }

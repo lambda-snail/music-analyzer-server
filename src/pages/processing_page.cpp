@@ -1,13 +1,15 @@
 #include "processing_page.hpp"
 
 #include "../components/file_view.hpp"
+#include "services/audio_features_service.hpp"
 
 #include <Wt/WContainerWidget.h>
 #include <Wt/WFileDropWidget.h>
 #include <Wt/WTemplate.h>
 #include <Wt/WText.h>
+#include <fstream>
 
-LambdaSnail::todo::ProcessingPage::ProcessingPage()
+LambdaSnail::todo::ProcessingPage::ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService) : m_AudioService(audioService)
 {
     // m_current_item = new todo(10);
     // m_current_item->items.emplace_back(1, "Hello TODO", true);
@@ -32,6 +34,7 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage()
     m_FileDrop->addStyleClass("d-flex");
     m_FileDrop->addStyleClass("justify-content-center");
     m_FileDrop->setAcceptDirectories(false);
+
 
     m_FileDrop->drop().connect([this](std::vector<Wt::WFileDropWidget::File*> const& files) {
         int const maxFiles   = 5;
@@ -63,6 +66,31 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage()
                 break;
         //m_FileDrop->widget(idx)->removeStyleClass("spinner");
         //m_FileDrop->widget(idx)->addStyleClass("ready");
+
+        // Stub to test file processing
+
+        std::string const& serverFileName = file->uploadedFile().spoolFileName();
+
+        std::ifstream stream(serverFileName, std::ios::binary | std::ios::ate);
+        if (not stream.is_open())
+        {
+            std::cout << "I/O error while reading\n";
+            return;
+        }
+
+        size_t stream_size = stream.tellg();
+        std::string buffer(stream_size, '\0');
+        stream.seekg(0);
+
+        if (not stream.read(&buffer[0], static_cast<std::streamoff>(stream_size)))
+        {
+            std::cout << "Error while reading file" << std::endl;
+            return;
+        }
+
+        stream.close();
+
+        m_AudioService->getFileAnalysisResults(buffer);
     });
 
     m_FileDrop->tooLarge().connect([this](Wt::WFileDropWidget::File* file, uint64_t size) {

@@ -19,11 +19,13 @@ add_executable(music-analyzer-server main.cpp
         src/pages/authentication_page.cpp
         src/pages/authentication_page.hpp
         src/pages/registration_view.cpp
-        src/pages/registration_view.hpp)
+        src/pages/registration_view.hpp
+        src/services/audio_features_service.cpp
+        src/services/audio_features_service.hpp)
 
 target_include_directories(music-analyzer-server PUBLIC src)
 
-target_link_libraries(music-analyzer-server PUBLIC wt wthttp wtdbo wtdbosqlite3)
+target_link_libraries(music-analyzer-server PUBLIC curl wt wthttp wtdbo wtdbosqlite3)
 
 add_custom_command(
         TARGET music-analyzer-server PRE_BUILD
