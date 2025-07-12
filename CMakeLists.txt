@@ -1,7 +1,20 @@
+include(FetchContent)
+
 cmake_minimum_required(VERSION 3.30)
 project(music-analyzer-server)
 
 set(CMAKE_CXX_STANDARD 23)
+
+FetchContent_Declare(
+        nlohmann
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.12.0
+)
+
+FetchContent_MakeAvailable(nlohmann)
+
+add_library(nlohmann INTERFACE)
+target_include_directories(nlohmann INTERFACE ${nlohmann_SOURCE_DIR}/include)
 
 add_executable(music-analyzer-server main.cpp
         src/components/todo_item_view.cpp
@@ -21,9 +34,14 @@ add_executable(music-analyzer-server main.cpp
         src/pages/registration_view.cpp
         src/pages/registration_view.hpp
         src/services/audio_features_service.cpp
-        src/services/audio_features_service.hpp)
+        src/services/audio_features_service.hpp
+        src/models/audio.hpp)
 
 target_include_directories(music-analyzer-server PUBLIC src)
+
+target_link_libraries(music-analyzer-server
+        PUBLIC
+        nlohmann)
 
 target_link_libraries(music-analyzer-server PUBLIC curl wt wthttp wtdbo wtdbosqlite3)
 

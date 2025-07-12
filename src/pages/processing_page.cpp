@@ -90,7 +90,20 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(LambdaSnail::music::services::
 
         stream.close();
 
-        m_AudioService->getFileAnalysisResults(buffer);
+        auto analysis = m_AudioService->getFileAnalysisResults(buffer);
+        if (analysis) {
+            auto const& value = analysis.value();
+            std::cout << value.acousticness << std::endl;
+            std::cout << value.danceability << std::endl;
+            std::cout << value.energy << std::endl;
+            std::cout << value.instrumentalness << std::endl;
+            std::cout << value.liveness << std::endl;
+            std::cout << value.loudness << std::endl;
+            std::cout << value.speechiness << std::endl;
+            std::cout << value.tempo << std::endl;
+            std::cout << value.valence << std::endl;
+        }
+
     });
 
     m_FileDrop->tooLarge().connect([this](Wt::WFileDropWidget::File* file, uint64_t size) {

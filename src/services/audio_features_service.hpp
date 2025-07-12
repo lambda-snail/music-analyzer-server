@@ -1,18 +1,20 @@
 #pragma once
 
+#include "models/audio.hpp"
+
 #include <curl/curl.h>
+#include <expected>
 
 #include <memory>
 #include <string>
 
 namespace LambdaSnail::music::services
 {
-
 class AudioFeaturesService
 {
   public:
     explicit AudioFeaturesService();
-    void getFileAnalysisResults(std::string const& buffer) const;
+    [[nodiscard]] std::expected<AudioAnalysis, std::string> getFileAnalysisResults(std::string const& buffer) const;
 
   private:
     using CurlPointer = std::unique_ptr<CURL, decltype([](CURL* c) { curl_easy_cleanup(c); })>;
