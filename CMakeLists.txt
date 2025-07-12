@@ -1,7 +1,9 @@
 include(FetchContent)
 
 cmake_minimum_required(VERSION 3.30)
-project(music-analyzer-server)
+project(music-analyzer-server
+    VERSION 0.3.0
+)
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -56,3 +58,33 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/resources
         ${CMAKE_BINARY_DIR}/resources)
+
+## Installs into /usr/lambda-snail/...
+set(SERVER_INSTALL_DIR "lambda-snail/music-server")
+
+install(TARGETS music-analyzer-server DESTINATION ${SERVER_INSTALL_DIR})
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/config" DESTINATION ${SERVER_INSTALL_DIR})
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/css" DESTINATION ${SERVER_INSTALL_DIR})
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/resources" DESTINATION ${SERVER_INSTALL_DIR})
+
+set(CPACK_PACKAGE_VENDOR "LambdaSnail")
+set(CPACK_PACKAGE_CONTACT "lambdasnail@placeholder.com")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A simple web application for a statistics course")
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+
+list(APPEND CPACK_GENERATOR DEB)
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS} libcurl4-gnutls-dev" )
+set(CPACK_SOURCE_IGNORE_FILES /.git /.idea /cmake-build-*)
+include(CPack)
+
+add_custom_target(
+        music-analyzer-server-deb
+        COMMENT "Creating DEB package for deployment"
+        COMMAND ${CMAKE_CPACK_COMMAND} -G DEB
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+        VERBATIM
+)
+
+add_dependencies(music-analyzer-server-deb music-analyzer-server)
