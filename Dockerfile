@@ -13,9 +13,10 @@ RUN apt-get update && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -r /var/lib/apt/lists/* music-analyzer-server-0.3.0-Linux.deb
-ENTRYPOINT ["/usr/lambda-snail/music-server/music-analyzer-server", \
-            "--docroot", "/usr/lambda-snail/music-server", \
-            "--config", "/usr/lambda-snail/music-server/config/wt_config.xml", \
+WORKDIR /usr/lambda-snail/music-server
+ENTRYPOINT ["./music-analyzer-server", \
+            "--docroot", ".", \
+            "--config", "./config/wt_config.xml", \
             "--http-address", "0.0.0.0", \
             "--http-port", "9090"]
 EXPOSE 9090
