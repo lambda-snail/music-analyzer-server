@@ -21,7 +21,7 @@ class AudioFeaturesService
     using HeaderPointer =
         std::unique_ptr<curl_slist, decltype([](curl_slist* l) { curl_slist_free_all(l); })>;
 
-    CurlPointer s_Curl{curl_easy_init()};
+    CurlPointer m_Curl{curl_easy_init()};
     HeaderPointer m_Headers;
     static char const* s_Url;
 

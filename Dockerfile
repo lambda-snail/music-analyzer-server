@@ -20,3 +20,4 @@ ENTRYPOINT ["./music-analyzer-server", \
             "--http-address", "0.0.0.0", \
             "--http-port", "9090"]
 EXPOSE 9090
+EXPOSE 443
