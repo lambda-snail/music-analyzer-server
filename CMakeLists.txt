@@ -19,8 +19,8 @@ target_include_directories(nlohmann INTERFACE ${nlohmann_SOURCE_DIR}/include)
 add_executable(music-analyzer-server main.cpp
         src/components/todo_item_view.cpp
         src/components/todo_item_view.hpp
-        src/components/file_view.cpp
-        src/components/file_view.hpp
+        src/components/song_view.cpp
+        src/components/song_view.hpp
         src/pages/processing_page.cpp
         src/pages/processing_page.hpp
         src/application/user.hpp

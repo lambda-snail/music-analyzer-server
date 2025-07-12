@@ -1,6 +1,6 @@
 #pragma once
 
-#include "components/file_view.hpp"
+#include "components/song_view.hpp"
 
 #include <Wt/WContainerWidget.h>
 
@@ -23,7 +23,7 @@ namespace LambdaSnail::todo
 
     private:
         Wt::WFileDropWidget* m_FileDrop{};
-        FileView* m_FileView;
+        SongView* m_FileView;
 
         LambdaSnail::music::services::AudioFeaturesService* m_AudioService;
     };

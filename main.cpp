@@ -1,7 +1,7 @@
 #include "pages/authentication_page.hpp"
 #include "services/audio_features_service.hpp"
 #include "src/application/session.hpp"
-#include "src/components/file_view.hpp"
+#include "src/components/song_view.hpp"
 #include "src/components/todo_item_view.hpp"
 #include "src/pages/processing_page.hpp"
 

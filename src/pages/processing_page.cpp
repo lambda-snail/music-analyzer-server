@@ -1,6 +1,6 @@
 #include "processing_page.hpp"
 
-#include "../components/file_view.hpp"
+#include "../components/song_view.hpp"
 #include "services/audio_features_service.hpp"
 
 #include <Wt/WContainerWidget.h>
@@ -24,7 +24,7 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(LambdaSnail::music::services::
     // t->bindNew<todo_view>("todo", *m_current_item);
 
 
-    m_FileView = t->bindNew<FileView>("file-list");
+    m_FileView = t->bindNew<SongView>("file-list");
 
     m_FileDrop = t->bindNew<Wt::WFileDropWidget>("file-drop");
     m_FileDrop->addNew<Wt::WText>("Drop Files Here");
@@ -46,7 +46,7 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(LambdaSnail::music::services::
             }
 
 
-            m_FileView->addFile(files[i]);
+            //m_FileView->addSong(TODO);
 
             // Wt::WContainerWidget* block = m_FileDrop->addNew<Wt::WContainerWidget>();
             // block->setToolTip(files[i]->clientFileName());
@@ -92,16 +92,21 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(LambdaSnail::music::services::
 
         auto analysis = m_AudioService->getFileAnalysisResults(buffer);
         if (analysis) {
-            auto const& value = analysis.value();
-            std::cout << value.acousticness << std::endl;
-            std::cout << value.danceability << std::endl;
-            std::cout << value.energy << std::endl;
-            std::cout << value.instrumentalness << std::endl;
-            std::cout << value.liveness << std::endl;
-            std::cout << value.loudness << std::endl;
-            std::cout << value.speechiness << std::endl;
-            std::cout << value.tempo << std::endl;
-            std::cout << value.valence << std::endl;
+            auto songInfo = std::make_unique<music::AudioInformation>();
+
+            songInfo->data = analysis.value();
+            songInfo->name = file->clientFileName();
+            //std::cout << songInfo->data.acousticness << std::endl;
+            //std::cout << songInfo->data.danceability << std::endl;
+            //std::cout << songInfo->data.energy << std::endl;
+            //std::cout << songInfo->data.instrumentalness << std::endl;
+            //std::cout << songInfo->data.liveness << std::endl;
+            //std::cout << songInfo->data.loudness << std::endl;
+            //std::cout << songInfo->data.speechiness << std::endl;
+            //std::cout << songInfo->data.tempo << std::endl;
+            //std::cout << songInfo->data.valence << std::endl;
+
+            m_FileView->addSong(std::move(songInfo));
         }
 
     });

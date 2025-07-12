@@ -17,7 +17,7 @@ struct AudioAnalysis {
 
 struct AudioInformation
 {
-    std::unique_ptr<AudioAnalysis> data{};
+    AudioAnalysis data{};
     std::string name{};
 };
 }
