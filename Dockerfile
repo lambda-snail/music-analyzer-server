@@ -18,4 +18,4 @@ ENTRYPOINT ["/usr/lambda-snail/music-server/music-analyzer-server", \
             "--config", "/usr/lambda-snail/music-server/config/wt_config.xml", \
             "--http-address", "0.0.0.0", \
             "--http-port", "9090"]
-EXPOSE 80:9090
+EXPOSE 9090
