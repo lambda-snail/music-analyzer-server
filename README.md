@@ -30,3 +30,9 @@ Get the filename after download (one line output)
 ```bash
 yt-dlp -o '%(title)s.%(ext)s' --get-filename btPJPFnesV4
 ```
+
+Then we can convert it to mp3
+
+```bash
+ffmpeg -i <file>.webm <file>.mp3
+```
