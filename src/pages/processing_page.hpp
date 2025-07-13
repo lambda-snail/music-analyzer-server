@@ -3,6 +3,7 @@
 #include "components/song_view.hpp"
 
 #include <Wt/WContainerWidget.h>
+#include <filesystem>
 
 namespace LambdaSnail::music::services
 {
@@ -16,15 +17,18 @@ namespace Wt
 
 namespace LambdaSnail::todo
 {
-    class ProcessingPage : public Wt::WContainerWidget
+    class ProcessingPage final : public Wt::WContainerWidget
     {
     public:
         explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
 
     private:
         Wt::WFileDropWidget* m_FileDrop{};
-        SongView* m_FileView;
+        Wt::WLineEdit* m_UrlInput{};
+        SongView* m_FileView{};
 
-        LambdaSnail::music::services::AudioFeaturesService* m_AudioService;
+        music::services::AudioFeaturesService* m_AudioService{};
+
+        void processAudioFile(std::filesystem::path const& filePath);
     };
 }
