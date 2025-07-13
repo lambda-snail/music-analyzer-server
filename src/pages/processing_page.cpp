@@ -9,6 +9,9 @@
 #include <Wt/WTemplate.h>
 #include <Wt/WText.h>
 
+#include <Wt/WApplication.h>
+#include <Wt/WPushButton.h>
+#include <cstdio>
 #include <fstream>
 
 LambdaSnail::todo::ProcessingPage::ProcessingPage(
@@ -19,6 +22,38 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(
 
     m_UrlInput = t->bindNew<Wt::WLineEdit>("yt-input");
     m_UrlInput->addStyleClass("w-25");
+
+    auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Get from YouTube");
+    button->setStyleClass("btn");
+    button->addStyleClass("primary");
+    // button->pre
+
+    button->clicked().connect([this]() {
+        auto const& videoId = m_UrlInput->valueText().toUTF8();
+        if (videoId.empty())
+        {
+            return;
+        }
+        //
+        std::filesystem::path fileName = executeShellCommand(
+            std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' --get-filename {}", videoId));
+
+        wApp->log("notice") << "Processing '" << fileName.string() << "'";
+
+        std::ignore = executeShellCommand(
+            std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId));
+
+        wApp->log("notice") << std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId);
+
+        std::ignore = executeShellCommand(
+                    std::format("ffmpeg -i {} {}/{}.mp3", fileName.string(), fileName.parent_path().string(), fileName.stem().string()));
+
+        wApp->log("notice") << std::format("ffmpeg -i {} {}/{}.mp3", fileName.string(), fileName.parent_path().string(), fileName.stem().string());
+
+        fileName.replace_extension("mp3");
+
+        processAudioFile(fileName);
+    });
 
     m_FileView = t->bindNew<SongView>("file-list");
 
@@ -46,11 +81,11 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(
     // });
 
     m_FileDrop->uploaded().connect([this](Wt::WFileDropWidget::File* file) {
-        std::vector<Wt::WFileDropWidget::File*> uploads = m_FileDrop->uploads();
-        std::size_t idx                                 = 0;
-        for (; idx != uploads.size(); ++idx)
-            if (uploads[idx] == file)
-                break;
+        // std::vector<Wt::WFileDropWidget::File*> uploads = m_FileDrop->uploads();
+        // std::size_t idx                                 = 0;
+        //  for (; idx != uploads.size(); ++idx)
+        //      if (uploads[idx] == file)
+        //          break;
 
         // Stub to test file processing
 
@@ -106,4 +141,25 @@ void LambdaSnail::todo::ProcessingPage::processAudioFile(std::filesystem::path c
 
         m_FileView->addSong(std::move(songInfo));
     }
+}
+
+std::string LambdaSnail::todo::ProcessingPage::executeShellCommand(std::string const& command) const
+{
+    std::array<char, 128> buffer{};
+    std::string result{};
+    std::unique_ptr<FILE, decltype([](FILE* f) { std::ignore = pclose(f); })> pipe(
+        popen(command.c_str(), "r"));
+
+    // if (!pipe) throw std::runtime_error("popen() failed!"); // TODO: expected error
+
+    try {
+        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr) {
+            result.append(buffer.data());
+        }
+    } catch (...) {
+        // TODO: expected error
+        throw;
+    }
+
+    return result;
 }

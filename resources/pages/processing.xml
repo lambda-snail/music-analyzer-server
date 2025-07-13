@@ -4,9 +4,13 @@
 
         <div class="card" style="m-2 w-50">
             <div class="card-header">
-                <div class="d-flex" style="gap:1rem">
+                <div class="d-flex" style="gap:2rem">
                     ${file-drop}
-                    <button class="btn btn-primary">Button 1</button>
+                    <div class="d-flex w-25">
+                        ${yt-input}
+<!--                        <button class="">Get from YouTube</button>-->
+                        ${yt-button}
+                    </div>
                 </div>
             </div>
             <div class="card-body">

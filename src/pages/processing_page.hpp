@@ -30,5 +30,6 @@ namespace LambdaSnail::todo
         music::services::AudioFeaturesService* m_AudioService{};
 
         void processAudioFile(std::filesystem::path const& filePath);
+        [[nodiscard]] std::string executeShellCommand(std::string const& command) const;
     };
 }
