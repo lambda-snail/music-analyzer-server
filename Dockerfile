@@ -18,6 +18,6 @@ ENTRYPOINT ["./music-analyzer-server", \
             "--docroot", ".", \
             "--config", "./config/wt_config.xml", \
             "--http-address", "0.0.0.0", \
-            "--http-port", "9090"]
-EXPOSE 9090
+            "--http-port", "80"]
+EXPOSE 80
 EXPOSE 443
