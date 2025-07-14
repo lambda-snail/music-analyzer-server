@@ -4,7 +4,7 @@
 
 #include "application/session.hpp"
 
-namespace LambdaSnail::todo::models
+namespace LambdaSnail::music::models
 {
     class user_details_model : public Wt::WFormModel
     {

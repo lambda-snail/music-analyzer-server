@@ -5,7 +5,7 @@
 #include "application/session.hpp"
 
 
-namespace LambdaSnail::todo::pages
+namespace LambdaSnail::music::pages
 {
     class authentication_page : public Wt::Auth::AuthWidget
     {

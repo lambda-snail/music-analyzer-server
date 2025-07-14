@@ -5,7 +5,7 @@
 
 #include <Wt/Auth/RegistrationWidget.h>
 
-namespace LambdaSnail::todo::pages
+namespace LambdaSnail::music::pages
 {
     class registration_view : public Wt::Auth::RegistrationWidget
     {

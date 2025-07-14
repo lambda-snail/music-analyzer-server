@@ -2,4 +2,4 @@
 
 #include <Wt/Dbo/Impl.h>
 
-DBO_INSTANTIATE_TEMPLATES(LambdaSnail::todo::application::user);
+DBO_INSTANTIATE_TEMPLATES(LambdaSnail::music::application::user);

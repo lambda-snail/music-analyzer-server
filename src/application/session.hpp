@@ -7,7 +7,7 @@
 
 #include "user.hpp"
 
-namespace LambdaSnail::todo::application
+namespace LambdaSnail::music::application
 {
     using userdb_t = Wt::Auth::Dbo::UserDatabase<auth_info_t>;
 

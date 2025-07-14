@@ -2,7 +2,7 @@
 
 #include "session.hpp"
 
-LambdaSnail::todo::application::Session::Session(
+LambdaSnail::music::application::Session::Session(
     std::string const& sqliteDb,
     Wt::Auth::AuthService& auth_service,
     Wt::Auth::PasswordService& password_service,
@@ -31,17 +31,17 @@ LambdaSnail::todo::application::Session::Session(
     m_userdb = std::make_unique<userdb_t>(*this);
 }
 
-Wt::Auth::Login& LambdaSnail::todo::application::Session::login()
+Wt::Auth::Login& LambdaSnail::music::application::Session::login()
 {
     return m_login;
 }
 
-Wt::Auth::AbstractUserDatabase& LambdaSnail::todo::application::Session::users() const
+Wt::Auth::AbstractUserDatabase& LambdaSnail::music::application::Session::users() const
 {
     return *m_userdb;
 }
-Wt::Dbo::ptr<LambdaSnail::todo::application::user>
-LambdaSnail::todo::application::Session::user()
+Wt::Dbo::ptr<LambdaSnail::music::application::user>
+LambdaSnail::music::application::Session::user()
 {
     if (m_login.loggedIn())
         return user(m_login.user());
@@ -49,8 +49,8 @@ LambdaSnail::todo::application::Session::user()
         return {};
 }
 
-Wt::Dbo::ptr<LambdaSnail::todo::application::user>
-LambdaSnail::todo::application::Session::user(Wt::Auth::User const& db_user)
+Wt::Dbo::ptr<LambdaSnail::music::application::user>
+LambdaSnail::music::application::Session::user(Wt::Auth::User const& db_user)
 {
     Wt::Dbo::ptr<auth_info_t> auth_info = m_userdb->find(db_user);
     Wt::Dbo::ptr<application::user> user = auth_info->user();
@@ -63,17 +63,17 @@ LambdaSnail::todo::application::Session::user(Wt::Auth::User const& db_user)
     return user;
 }
 
-const Wt::Auth::AuthService& LambdaSnail::todo::application::Session::auth() const
+const Wt::Auth::AuthService& LambdaSnail::music::application::Session::auth() const
 {
     return m_auth_service;
 }
 
-const Wt::Auth::PasswordService& LambdaSnail::todo::application::Session::password_auth() const
+const Wt::Auth::PasswordService& LambdaSnail::music::application::Session::password_auth() const
 {
     return m_password_service;
 }
 
-std::vector<const Wt::Auth::OAuthService *> LambdaSnail::todo::application::Session::oauth() const
+std::vector<const Wt::Auth::OAuthService *> LambdaSnail::music::application::Session::oauth() const
 {
     std::vector<const Wt::Auth::OAuthService*> result;
     result.reserve(m_oauth_services.size());

@@ -4,7 +4,7 @@
 
 #include <Wt/WLineEdit.h>
 
-LambdaSnail::todo::pages::registration_view::registration_view(
+LambdaSnail::music::pages::registration_view::registration_view(
     application::Session& session, Wt::Auth::AuthWidget* authWidget)
     : Wt::Auth::RegistrationWidget(authWidget), m_session(session)
 {
@@ -15,7 +15,7 @@ LambdaSnail::todo::pages::registration_view::registration_view(
 }
 
 std::unique_ptr<Wt::WWidget>
-LambdaSnail::todo::pages::registration_view::createFormWidget(Wt::WFormModel::Field field)
+LambdaSnail::music::pages::registration_view::createFormWidget(Wt::WFormModel::Field field)
 {
     return Wt::Auth::RegistrationWidget::createFormWidget(field);
 
@@ -28,7 +28,7 @@ LambdaSnail::todo::pages::registration_view::createFormWidget(Wt::WFormModel::Fi
     // }
 }
 
-bool LambdaSnail::todo::pages::registration_view::validate()
+bool LambdaSnail::music::pages::registration_view::validate()
 {
     bool result = Wt::Auth::RegistrationWidget::validate();
 
@@ -40,7 +40,7 @@ bool LambdaSnail::todo::pages::registration_view::validate()
     return result;
 }
 
-void LambdaSnail::todo::pages::registration_view::registerUserDetails(Wt::Auth::User& user)
+void LambdaSnail::music::pages::registration_view::registerUserDetails(Wt::Auth::User& user)
 {
     m_details_model->save(user);
 }

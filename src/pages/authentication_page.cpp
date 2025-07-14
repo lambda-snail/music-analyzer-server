@@ -2,13 +2,13 @@
 
 #include "registration_view.hpp"
 
-LambdaSnail::todo::pages::authentication_page::authentication_page(application::Session& session)
+LambdaSnail::music::pages::authentication_page::authentication_page(application::Session& session)
     : AuthWidget(session.auth(), session.users(), session.login()), m_session(session)
 {
 }
 
 std::unique_ptr<Wt::WWidget>
-LambdaSnail::todo::pages::authentication_page::createRegistrationView(Wt::Auth::Identity const& id)
+LambdaSnail::music::pages::authentication_page::createRegistrationView(Wt::Auth::Identity const& id)
 {
     auto view = std::make_unique<registration_view>(m_session, this);
     std::unique_ptr<Wt::Auth::RegistrationModel> model = createRegistrationModel();

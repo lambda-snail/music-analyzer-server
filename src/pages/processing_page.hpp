@@ -16,7 +16,7 @@ namespace Wt
     class WFileDropWidget;
 }
 
-namespace LambdaSnail::todo
+namespace LambdaSnail::music
 {
     class ProcessingPage final : public Wt::WContainerWidget
     {

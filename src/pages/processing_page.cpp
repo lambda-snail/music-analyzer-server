@@ -15,7 +15,7 @@
 #include <fstream>
 #include <cerrno>
 
-LambdaSnail::todo::ProcessingPage::ProcessingPage(
+LambdaSnail::music::ProcessingPage::ProcessingPage(
     LambdaSnail::music::services::AudioFeaturesService* audioService)
     : m_AudioService(audioService)
 {
@@ -161,7 +161,7 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(
     });
 }
 
-void LambdaSnail::todo::ProcessingPage::processAudioFile(std::filesystem::path const& filePath)
+void LambdaSnail::music::ProcessingPage::processAudioFile(std::filesystem::path const& filePath)
 {
     std::ifstream stream(filePath, std::ios::binary | std::ios::ate);
     if (not stream.is_open()) {
@@ -192,14 +192,12 @@ void LambdaSnail::todo::ProcessingPage::processAudioFile(std::filesystem::path c
 }
 
 std::expected<std::string, std::string>
-LambdaSnail::todo::ProcessingPage::executeShellCommand(std::string const& command) const
+LambdaSnail::music::ProcessingPage::executeShellCommand(std::string const& command) const
 {
     std::array<char, 128> buffer{};
     std::string result{};
 
     wApp->log("notice") << "Executing shell command: " << command;
-
-    // if (!pipe) throw std::runtime_error("popen() failed!"); // TODO: expected error
 
     int32_t exitStatus{};
     auto deleter = [&exitStatus, &result](FILE* f)

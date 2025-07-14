@@ -25,7 +25,7 @@ static std::array<std::string, 10> m_Columns
         "Valence"
     };
 
-LambdaSnail::todo::SongView::SongView()
+LambdaSnail::music::SongView::SongView()
 {
     m_Table = addNew<Wt::WTable>();
     m_Table->setHeaderCount(1);
@@ -39,7 +39,7 @@ LambdaSnail::todo::SongView::SongView()
     m_Table->toggleStyleClass("stripes", true);
 }
 
-void LambdaSnail::todo::SongView::addSong(std::unique_ptr<music::AudioInformation>&& songData)
+void LambdaSnail::music::SongView::addSong(std::unique_ptr<music::AudioInformation>&& songData)
 {
     auto const row = m_Table->rowCount();
 
@@ -57,4 +57,4 @@ void LambdaSnail::todo::SongView::addSong(std::unique_ptr<music::AudioInformatio
     m_Songs.push_back(std::move(songData));
 }
 
-void LambdaSnail::todo::SongView::removeFile() {}
+void LambdaSnail::music::SongView::removeFile() {}

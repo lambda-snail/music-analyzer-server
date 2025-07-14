@@ -7,7 +7,7 @@
 #include <Wt/WContainerWidget.h>
 #include <Wt/WFileDropWidget.h>
 
-namespace LambdaSnail::todo
+namespace LambdaSnail::music
 {
     class SongView : public Wt::WContainerWidget
     {

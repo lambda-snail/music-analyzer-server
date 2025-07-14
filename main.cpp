@@ -30,7 +30,7 @@ class todo_application final : public Wt::WApplication
   public:
     void setup_auth_page()
     {
-        auto auth_page = std::make_unique<LambdaSnail::todo::pages::authentication_page>(m_session);
+        auto auth_page = std::make_unique<LambdaSnail::music::pages::authentication_page>(m_session);
 
         auth_page->model()->addPasswordAuth(&m_session.password_auth());
         auth_page->model()->addOAuth(m_session.oauth());
@@ -73,7 +73,7 @@ class todo_application final : public Wt::WApplication
         m_widget_stack = t->bindWidget("main-content", std::make_unique<Wt::WStackedWidget>());
 
         m_todo_page =
-            m_widget_stack->addWidget(std::move(std::make_unique<LambdaSnail::todo::ProcessingPage>(m_Service.get())));
+            m_widget_stack->addWidget(std::move(std::make_unique<LambdaSnail::music::ProcessingPage>(m_Service.get())));
 
         root()->addWidget(std::move(t));
     }
@@ -112,9 +112,9 @@ class todo_application final : public Wt::WApplication
     }
 
   private:
-    LambdaSnail::todo::application::Session m_session;
+    LambdaSnail::music::application::Session m_session;
     Wt::WStackedWidget* m_widget_stack{};
-    LambdaSnail::todo::ProcessingPage* m_todo_page{};
+    LambdaSnail::music::ProcessingPage* m_todo_page{};
 
     std::unique_ptr<LambdaSnail::music::services::AudioFeaturesService> m_Service;
 };

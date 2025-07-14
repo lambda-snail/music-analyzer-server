@@ -4,7 +4,7 @@
 #include <Wt/Dbo/Types.h>
 #include <Wt/WGlobal.h>
 
-namespace LambdaSnail::todo::application
+namespace LambdaSnail::music::application
 {
     typedef Wt::Auth::Dbo::AuthInfo<class user> auth_info_t;
 
@@ -26,4 +26,4 @@ namespace LambdaSnail::todo::application
     };
 }
 
-DBO_EXTERN_TEMPLATES(LambdaSnail::todo::application::user)
+DBO_EXTERN_TEMPLATES(LambdaSnail::music::application::user)
