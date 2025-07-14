@@ -13,6 +13,7 @@
 #include <Wt/WPushButton.h>
 #include <cstdio>
 #include <fstream>
+#include <cerrno>
 
 LambdaSnail::todo::ProcessingPage::ProcessingPage(
     LambdaSnail::music::services::AudioFeaturesService* audioService)
@@ -30,29 +31,76 @@ LambdaSnail::todo::ProcessingPage::ProcessingPage(
 
     button->clicked().connect([this]() {
         auto const& videoId = m_UrlInput->valueText().toUTF8();
-        if (videoId.empty())
-        {
+        if (videoId.empty()) {
             return;
         }
+
+        auto const downloadResult = executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' -q {}", videoId));
+        if (not downloadResult.has_value())
+        {
+            wApp->log("error") << ( downloadResult.error() );
+            return;
+        }
+
+        auto const processResult = executeShellCommand(
+            std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' --get-filename {}", videoId)
+        )
+        .transform([](std::string const&& fileName) {
+            if (fileName.ends_with('\n'))
+            {
+                return std::filesystem::path(std::string_view(fileName.cbegin(), --fileName.cend()));
+            }
+
+            return std::filesystem::path(fileName);
+        })
+        .and_then([this](std::filesystem::path&& path) {
+            wApp->log("notice") << "Processing file: " << path.string();
+
+            return executeShellCommand(std::format(
+                R"(ffmpeg -i "{}" "{}/{}.mp3" -n -loglevel fatal)", // If file exists, we just use that
+                path.string(),
+                path.parent_path().string(),
+                path.stem().string())
+            )
+            .transform([&path](std::string const&& str) {
+                return path;
+            });
+        }).and_then([this](std::filesystem::path&& path) {
+            path.replace_extension("mp3");
+            processAudioFile(path);
+            return std::expected<std::filesystem::path, std::string>{};
+        });
+
+        if (not processResult.has_value())
+        {
+            wApp->log("error") << ( processResult.error() );
+            return;
+        }
+
+
+
+        // wApp->log("notice") << "Processing '" << fileName.string() << "'";
         //
-        std::filesystem::path fileName = executeShellCommand(
-            std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' --get-filename {}", videoId));
-
-        wApp->log("notice") << "Processing '" << fileName.string() << "'";
-
-        std::ignore = executeShellCommand(
-            std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId));
-
-        wApp->log("notice") << std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId);
-
-        std::ignore = executeShellCommand(
-                    std::format("ffmpeg -i {} {}/{}.mp3", fileName.string(), fileName.parent_path().string(), fileName.stem().string()));
-
-        wApp->log("notice") << std::format("ffmpeg -i {} {}/{}.mp3", fileName.string(), fileName.parent_path().string(), fileName.stem().string());
-
-        fileName.replace_extension("mp3");
-
-        processAudioFile(fileName);
+        // std::ignore =
+        //     executeShellCommand(std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId));
+        //
+        // wApp->log("notice") << std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId);
+        //
+        // std::ignore = executeShellCommand(std::format(
+        //     "ffmpeg -i {} {}/{}.mp3",
+        //     fileName.string(),
+        //     fileName.parent_path().string(),
+        //     fileName.stem().string()));
+        //
+        // wApp->log("notice") << std::format(
+        //     "ffmpeg -i {} {}/{}.mp3",
+        //     fileName.string(),
+        //     fileName.parent_path().string(),
+        //     fileName.stem().string());
+        //
+        // fileName.replace_extension("mp3");
+        //
+        // processAudioFile(fileName);
     });
 
     m_FileView = t->bindNew<SongView>("file-list");
@@ -117,7 +165,7 @@ void LambdaSnail::todo::ProcessingPage::processAudioFile(std::filesystem::path c
 {
     std::ifstream stream(filePath, std::ios::binary | std::ios::ate);
     if (not stream.is_open()) {
-        std::cout << "I/O error while reading\n";
+        wApp->log("error") << "Error when opening audio file: " << filePath.string();
         return;
     }
 
@@ -126,13 +174,13 @@ void LambdaSnail::todo::ProcessingPage::processAudioFile(std::filesystem::path c
     stream.seekg(0);
 
     if (not stream.read(&buffer[0], static_cast<std::streamoff>(stream_size))) {
-        std::cout << "Error while reading file" << std::endl;
+        wApp->log("error") << "Error when reading audio file: " << filePath.string();
         return;
     }
 
     stream.close();
 
-    auto analysis = m_AudioService->getFileAnalysisResults(buffer);
+    auto const analysis = m_AudioService->getFileAnalysisResults(buffer);
     if (analysis) {
         auto songInfo = std::make_unique<music::AudioInformation>();
 
@@ -143,22 +191,42 @@ void LambdaSnail::todo::ProcessingPage::processAudioFile(std::filesystem::path c
     }
 }
 
-std::string LambdaSnail::todo::ProcessingPage::executeShellCommand(std::string const& command) const
+std::expected<std::string, std::string>
+LambdaSnail::todo::ProcessingPage::executeShellCommand(std::string const& command) const
 {
     std::array<char, 128> buffer{};
     std::string result{};
-    std::unique_ptr<FILE, decltype([](FILE* f) { std::ignore = pclose(f); })> pipe(
-        popen(command.c_str(), "r"));
+
+    wApp->log("notice") << "Executing shell command: " << command;
 
     // if (!pipe) throw std::runtime_error("popen() failed!"); // TODO: expected error
 
-    try {
-        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr) {
+    int32_t exitStatus{};
+    auto deleter = [&exitStatus, &result](FILE* f)
+    {
+        exitStatus = pclose(f);
+        if (exitStatus != EXIT_SUCCESS)
+        {
+            result = strerror(errno);
+        }
+    };
+
+    try
+    {
+        std::unique_ptr<FILE, decltype(deleter)> pipe(popen(command.c_str(), "r"), deleter);
+        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr)
+        {
             result.append(buffer.data());
         }
-    } catch (...) {
-        // TODO: expected error
-        throw;
+    }
+    catch (...)
+    {
+        return std::unexpected("An error occurred while executing a command");
+    }
+
+    if (exitStatus != EXIT_SUCCESS)
+    {
+        return std::unexpected(result);
     }
 
     return result;

@@ -3,6 +3,7 @@
 #include "components/song_view.hpp"
 
 #include <Wt/WContainerWidget.h>
+#include <expected>
 #include <filesystem>
 
 namespace LambdaSnail::music::services
@@ -30,6 +31,7 @@ namespace LambdaSnail::todo
         music::services::AudioFeaturesService* m_AudioService{};
 
         void processAudioFile(std::filesystem::path const& filePath);
-        [[nodiscard]] std::string executeShellCommand(std::string const& command) const;
+        [[nodiscard]] std::expected<std::string, std::string>
+        executeShellCommand(std::string const& command) const;
     };
 }
