@@ -2,15 +2,36 @@
 <messages>
     <message id="processing-page">
 
+        <div class="collapse" id="help-box">
+            <div class="card">
+                <dib class="card-header">
+                    To Ways to Analyze Music!
+                </dib>
+                <div class="card-body">
+                    <ul>
+                        <li>You can upload music files (mp3) from the file drop by clicking it or by drag-and-drop.</li>
+                        <li>You can also analyze songs by pasting in the id (e.g., "kXYiU_JCYtU") of a YouTube video and
+                            pressing the button 'Get from YouTube'. Note that this may take some time if the video is large.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <div class="card" style="m-2 w-50">
             <div class="card-header">
                 <div class="d-flex" style="gap:2rem">
                     ${file-drop}
-                    <div class="d-flex w-25">
+                    <div class="d-flex w-50">
                         ${yt-input}
-<!--                        <button class="">Get from YouTube</button>-->
+                        <!--                        <button class="">Get from YouTube</button>-->
                         ${yt-button}
                     </div>
+
+                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#help-box"
+                            aria-expanded="false" aria-controls="help-box">
+                        Help
+                    </button>
                 </div>
             </div>
             <div class="card-body">
@@ -31,6 +52,8 @@
     </message>
 
     <message id="file-view-component-row">
-        <li class="list-group-item d-flex justify-content-between rounded">${file-name} <button class="btn btn-danger">Remove</button></li>
+        <li class="list-group-item d-flex justify-content-between rounded">${file-name}
+            <button class="btn btn-danger">Remove</button>
+        </li>
     </message>
 </messages>
