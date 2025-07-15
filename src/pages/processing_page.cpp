@@ -1,8 +1,8 @@
 #include "processing_page.hpp"
 
+#include "components/process_log.hpp"
 #include "components/song_view.hpp"
 #include "services/audio_features_service.hpp"
-#include "components/process_log.hpp"
 
 #include <Wt/WContainerWidget.h>
 #include <Wt/WFileDropWidget.h>
@@ -12,13 +12,18 @@
 
 #include <Wt/WApplication.h>
 #include <Wt/WPushButton.h>
+#include <Wt/WServer.h>
+#include <cerrno>
 #include <cstdio>
 #include <fstream>
-#include <cerrno>
+#include <future>
+#include <iostream>
+#include <syncstream>
+#include <thread>
 
 LambdaSnail::music::ProcessingPage::ProcessingPage(
     LambdaSnail::music::services::AudioFeaturesService* audioService)
-    : m_AudioService(audioService)
+    : m_AudioService(audioService), m_App(wApp)
 {
     auto* t = addNew<Wt::WTemplate>(Wt::WString::tr("processing-page"));
 
@@ -30,82 +35,41 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
     button->addStyleClass("primary");
     // button->pre
 
+    // signal_LogAdded.connect([this](ProcessLog* log) {
+    //     std::osyncstream(std::cout) << std::this_thread::get_id() << std::endl;
+    //     m_LogContainer->addWidget(std::unique_ptr<ProcessLog>(log));
+    // });
+    //
+    // signal_MessageChanged.connect([this](std::string const& message, ProcessLog* log) {
+    //     Wt::WServer::instance()->post(m_App->sessionId(),[log, &message]() {
+    //         log->updateMessage(message);
+    //     });
+    // });
+
     button->clicked().connect([this]() {
         auto const& videoId = m_UrlInput->valueText().toUTF8();
         if (videoId.empty()) {
             return;
         }
 
-        auto* logger = addNewLog(videoId);
+        std::osyncstream(std::cout) << std::this_thread::get_id() << std::endl;
 
-        logger->updateMessage("Downloading from YouTube, this may take a while ...");
-        auto const downloadResult =
-            executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' -q {}", videoId));
-        if (not downloadResult.has_value()) {
-            //wApp->log("error") << (downloadResult.error());
-            logger->updateMessage(downloadResult.error());
-            return;
-        }
+        // auto* logger = new ProcessLog(videoId);
+        // signal_LogAdded.emit(logger);
+        // processYouTubeId(videoId, logger);
 
-        auto const processResult =
-            executeShellCommand(
-                std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' --get-filename {}", videoId))
-                .transform([](std::string const&& fileName) {
-                    if (fileName.ends_with('\n')) {
-                        return std::filesystem::path(
-                            std::string_view(fileName.cbegin(), --fileName.cend()));
-                    }
+        auto* logger = addNewLog(videoId, m_App);
+        std::thread([this, logger, videoId]() {
 
-                    return std::filesystem::path(fileName);
-                })
-                .and_then([this, logger](std::filesystem::path&& path) {
-                    //wApp->log("notice") << "Processing file: " << path.string();
-                    logger->updateMessage(std::format("{} downloaded successfully! Converting to mp3 ...", path.filename().string()));
+            // app->attachThread(true);
+            //Wt::WApplication::UpdateLock lock(app);
+            //if (lock) {
+                // signal_LogAdded.emit(logger);
+            processYouTubeId(videoId, logger);
+            //}
 
-                    return executeShellCommand(
-                               std::format(
-                                   R"(ffmpeg -i "{}" "{}/{}.mp3" -n -loglevel fatal)", // If file
-                                                                                       // exists, we
-                                                                                       // just use
-                                                                                       // that
-                                   path.string(),
-                                   path.parent_path().string(),
-                                   path.stem().string()))
-                        .transform([&path](std::string const&& str) { return path; });
-                })
-                .and_then([this, logger](std::filesystem::path&& path) {
-                    path.replace_extension("mp3");
-                    processAudioFile(path, logger);
-                    return std::expected<std::filesystem::path, std::string>{};
-                });
-
-        if (not processResult.has_value()) {
-            wApp->log("error") << (processResult.error());
-            return;
-        }
-
-        // wApp->log("notice") << "Processing '" << fileName.string() << "'";
-        //
-        // std::ignore =
-        //     executeShellCommand(std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId));
-        //
-        // wApp->log("notice") << std::format("yt-dlp -o '{}' -q {}", fileName.string(), videoId);
-        //
-        // std::ignore = executeShellCommand(std::format(
-        //     "ffmpeg -i {} {}/{}.mp3",
-        //     fileName.string(),
-        //     fileName.parent_path().string(),
-        //     fileName.stem().string()));
-        //
-        // wApp->log("notice") << std::format(
-        //     "ffmpeg -i {} {}/{}.mp3",
-        //     fileName.string(),
-        //     fileName.parent_path().string(),
-        //     fileName.stem().string());
-        //
-        // fileName.replace_extension("mp3");
-        //
-        // processAudioFile(fileName);
+            // app->attachThread(false);
+        }).detach();
     });
 
     m_FileView = t->bindNew<SongView>("file-list");
@@ -143,8 +107,20 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
 
         // Stub to test file processing
 
-        auto* logger = addNewLog(file->clientFileName());
-        processAudioFile(std::filesystem::path(file->uploadedFile().spoolFileName()), logger);
+        auto* logger = addNewLog(file->clientFileName(), m_App);
+
+        std::thread([this, logger, file]() {
+            m_App->attachThread(true);
+            processAudioFile(std::filesystem::path(file->uploadedFile().spoolFileName()), logger);
+            m_App->attachThread(false);
+        }).detach();
+
+        // auto handle = std::async(std::launch::async, [this, file, logger]() {
+        //     processAudioFile(std::filesystem::path(file->uploadedFile().spoolFileName()),
+        //     logger);
+        // });
+
+        // handle.wait();
     });
 
     m_FileDrop->tooLarge().connect([this](Wt::WFileDropWidget::File* file, uint64_t size) {
@@ -168,20 +144,84 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
     });
 }
 
-LambdaSnail::music::ProcessLog* LambdaSnail::music::ProcessingPage::addNewLog(std::string const& name)
+LambdaSnail::music::ProcessLog*
+LambdaSnail::music::ProcessingPage::addNewLog(std::string const& name, Wt::WApplication* app)
 {
-    std::unique_lock lock { m_LogContainerMutex };
-    return m_LogContainer->addNew<ProcessLog>(name);
+    std::unique_lock lock{m_LogContainerMutex};
+
+    ProcessLog* logger{};
+    //Wt::WApplication::UpdateLock uiLock(m_App);
+    //if (uiLock) {
+        logger = m_LogContainer->addNew<ProcessLog>(name, app);
+    //    m_App->triggerUpdate();
+    //}
+
+    return logger;
+}
+void LambdaSnail::music::ProcessingPage::processYouTubeId(
+    std::string const& videoId, ProcessLog* logger)
+{
+    logger->updateMessage("Downloading from YouTube, this may take a while ...");
+
+    // signal_MessageChanged.emit("Downloading from YouTube, this may take a while ...", logger);
+    auto const downloadResult =
+        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' -q {}", videoId));
+    if (not downloadResult.has_value()) {
+        // m_App->log("error") << (downloadResult.error());
+        logger->updateMessage(downloadResult.error());
+        return;
+    }
+
+    auto const processResult =
+        executeShellCommand(
+            std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' --get-filename {}", videoId))
+            .transform([](std::string const&& fileName) {
+                if (fileName.ends_with('\n')) {
+                    return std::filesystem::path(
+                        std::string_view(fileName.cbegin(), --fileName.cend()));
+                }
+
+                return std::filesystem::path(fileName);
+            })
+            .and_then([this, logger](std::filesystem::path&& path) {
+                // m_App->log("notice") << "Processing file: " << path.string();
+                logger->updateName(path.root_name().string()); // TODO: Make function to update both at same time
+                logger->updateMessage(std::format(
+                    "{} downloaded successfully! Converting to mp3 ...", path.filename().string()));
+
+                return executeShellCommand(
+                           std::format(
+                               R"(ffmpeg -i "{}" "{}/{}.mp3" -n -loglevel fatal)", // If file
+                                                                                   // exists, we
+                                                                                   // just use
+                                                                                   // that
+                               path.string(),
+                               path.parent_path().string(),
+                               path.stem().string()))
+                    .transform([&path](std::string const&& str) { return path; });
+            })
+            .and_then([this, logger](std::filesystem::path&& path) {
+                path.replace_extension("mp3");
+                processAudioFile(path, logger);
+                return std::expected<std::filesystem::path, std::string>{};
+            });
+
+    if (not processResult.has_value()) {
+        //m_App->log("error") << (processResult.error());
+        return;
+    }
 }
 
-void LambdaSnail::music::ProcessingPage::processAudioFile(std::filesystem::path const& filePath, ProcessLog* log)
+void LambdaSnail::music::ProcessingPage::processAudioFile(
+    std::filesystem::path const& filePath, ProcessLog* log)
 {
     log->updateMessage("Reading file content");
 
     std::ifstream stream(filePath, std::ios::binary | std::ios::ate);
     if (not stream.is_open()) {
-        std::string const message = std::format("Error when opening audio file: {}", filePath.string());
-        //wApp->log("error") << "Error when opening audio file: " << filePath.string();
+        std::string const message =
+            std::format("Error when opening audio file: {}", filePath.string());
+        // m_App->log("error") << "Error when opening audio file: " << filePath.string();
         log->updateMessage(message);
         return;
     }
@@ -191,8 +231,9 @@ void LambdaSnail::music::ProcessingPage::processAudioFile(std::filesystem::path 
     stream.seekg(0);
 
     if (not stream.read(&buffer[0], static_cast<std::streamoff>(stream_size))) {
-        //wApp->log("error") << "Error when reading audio file: " << filePath.string();
-        std::string const message = std::format("Error when reading audio file: {}", filePath.string());
+        // m_App->log("error") << "Error when reading audio file: " << filePath.string();
+        std::string const message =
+            std::format("Error when reading audio file: {}", filePath.string());
         log->updateMessage(message);
         return;
     }
@@ -200,15 +241,20 @@ void LambdaSnail::music::ProcessingPage::processAudioFile(std::filesystem::path 
     stream.close();
 
     log->updateMessage("Performing analysis, please wait ...");
-    auto const analysis = m_AudioService->getFileAnalysisResults(buffer);
+    auto const analysis = m_AudioService->getFileAnalysisResults(buffer, m_App);
     if (analysis) {
         auto songInfo = std::make_unique<music::AudioInformation>();
 
         songInfo->data = analysis.value();
         songInfo->name = filePath.filename();
 
-        m_FileView->addSong(std::move(songInfo));
-        log->updateMessage("Completed!");
+        Wt::WApplication::UpdateLock uiLock(m_App);
+        if (uiLock) {
+            m_FileView->addSong(std::move(songInfo));
+            m_App->triggerUpdate();
+        }
+
+        log->updateMessage("Completed!"); // TODO: Add lockless version for the case where you already have the lock?
     }
 
     // TODO: Report error here or return std::unexpected
@@ -220,33 +266,26 @@ LambdaSnail::music::ProcessingPage::executeShellCommand(std::string const& comma
     std::array<char, 128> buffer{};
     std::string result{};
 
-    wApp->log("notice") << "Executing shell command: " << command;
+    m_App->log("notice") << "Executing shell command: " << command;
 
     int32_t exitStatus{};
-    auto deleter = [&exitStatus, &result](FILE* f)
-    {
+    auto deleter = [&exitStatus, &result](FILE* f) {
         exitStatus = pclose(f);
-        if (exitStatus != EXIT_SUCCESS)
-        {
+        if (exitStatus != EXIT_SUCCESS) {
             result = strerror(errno);
         }
     };
 
-    try
-    {
+    try {
         std::unique_ptr<FILE, decltype(deleter)> pipe(popen(command.c_str(), "r"), deleter);
-        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr)
-        {
+        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr) {
             result.append(buffer.data());
         }
-    }
-    catch (...)
-    {
+    } catch (...) {
         return std::unexpected("An error occurred while executing a command");
     }
 
-    if (exitStatus != EXIT_SUCCESS)
-    {
+    if (exitStatus != EXIT_SUCCESS) {
         return std::unexpected(result);
     }
 

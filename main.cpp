@@ -182,6 +182,8 @@ int main(int argc, char** argv)
             app->messageResourceBundle().use("resources/pages/auth");
             app->messageResourceBundle().use("resources/pages/processing");
 
+            app->enableUpdates(true);
+
             //app->messageResourceBundle().use("resources/components/todo-components");
 
             // // resolve a string using the resource bundle

@@ -5,6 +5,7 @@
 #include <curl/curl.h>
 #include <expected>
 
+#include <Wt/WApplication.h>
 #include <memory>
 #include <string>
 
@@ -14,7 +15,7 @@ class AudioFeaturesService
 {
   public:
     explicit AudioFeaturesService();
-    [[nodiscard]] std::expected<AudioAnalysis, std::string> getFileAnalysisResults(std::string const& buffer) const;
+    [[nodiscard]] std::expected<AudioAnalysis, std::string> getFileAnalysisResults(std::string const& buffer, Wt::WApplication* app) const;
 
   private:
     using CurlPointer = std::unique_ptr<CURL, decltype([](CURL* c) { curl_easy_cleanup(c); })>;

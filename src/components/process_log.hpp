@@ -7,14 +7,14 @@ namespace LambdaSnail::music
 {
 
 /**
- * Simple class for displaying progress and error messages to the user. Should probably be split into
- * a model and view or similar, but the project is so small that it's simply easier to have them in oone
- * class.
+ * Simple class for displaying progress and error messages to the user. Should probably be split
+ * into a model and view or similar, but the project is so small that it's simply easier to have
+ * them in oone class.
  */
 class ProcessLog final : public Wt::WTemplate
 {
   public:
-    explicit ProcessLog(std::string name);
+    explicit ProcessLog(std::string name, Wt::WApplication* app);
 
     void updateName(std::string const& name);
     void updateMessage(std::string const& message);
@@ -27,6 +27,11 @@ class ProcessLog final : public Wt::WTemplate
     // The log will be updated from event callbacks. They should only be
     // updated by one thread at a time, but just to be sure we lock the log first
     std::mutex m_Mutex{};
+
+    Wt::WText* m_Title;
+    Wt::WText* m_Message;
+
+    Wt::WApplication* m_App;
 
     void bindName();
     void bindMessage();

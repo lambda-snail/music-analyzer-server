@@ -33,10 +33,16 @@ class ProcessingPage final : public Wt::WContainerWidget
 
     std::mutex m_LogContainerMutex{};
     WContainerWidget* m_LogContainer{};
-    ProcessLog* addNewLog(std::string const& name);
+    ProcessLog* addNewLog(std::string const& name, Wt::WApplication* app);
 
+    void processYouTubeId(std::string const& videoId, ProcessLog* logger);
     void processAudioFile(std::filesystem::path const& filePath, ProcessLog* log);
     [[nodiscard]] std::expected<std::string, std::string>
     executeShellCommand(std::string const& command) const;
+
+    Wt::WApplication* m_App{};
+
+    // Wt::Signal<std::string, ProcessLog*> signal_MessageChanged{};
+    // Wt::Signal<ProcessLog*> signal_LogAdded{};
 };
 } // namespace LambdaSnail::music

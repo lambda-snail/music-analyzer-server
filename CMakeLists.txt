@@ -39,6 +39,8 @@ add_executable(music-analyzer-server main.cpp
         src/services/audio_features_service.hpp
         src/models/audio.hpp)
 
+#target_compile_options(music-analyzer-server PUBLIC "-fsanitize=undefined")
+
 target_include_directories(music-analyzer-server PUBLIC src)
 
 target_link_libraries(music-analyzer-server

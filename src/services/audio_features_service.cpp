@@ -21,7 +21,7 @@ LambdaSnail::music::services::AudioFeaturesService::AudioFeaturesService()
 
 std::expected<LambdaSnail::music::AudioAnalysis, std::string>
 LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
-    std::string const& buffer) const
+    std::string const& buffer, Wt::WApplication* app) const
 {
     curl_mime* multipart = curl_mime_init(m_Curl.get());
     curl_mimepart* part  = curl_mime_addpart(multipart);
@@ -46,7 +46,7 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
     CURLcode code = curl_easy_perform(m_Curl.get());
 
     if (code == CURLcode::CURLE_OK) {
-        wApp->log("notice") << "Request successful.";
+        app->log("notice") << "Request successful.";
 
         auto obj = nlohmann::json::parse(response);
         return AudioAnalysis{
@@ -62,8 +62,8 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
         };
     }
 
-    wApp->log("error") << "Error when sending request to the analysis server: " << static_cast<size_t>(code);
-    wApp->log("error") << curl_easy_strerror(code);
+    app->log("error") << "Error when sending request to the analysis server: " << static_cast<size_t>(code);
+    app->log("error") << curl_easy_strerror(code);
 
     return std::unexpected( std::format("Received error code: {}", static_cast<size_t>(code)) );
 }
