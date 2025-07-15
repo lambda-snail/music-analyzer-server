@@ -6,32 +6,37 @@
 #include <expected>
 #include <filesystem>
 
-namespace LambdaSnail::music::services
-{
-class AudioFeaturesService;
-}
-
 namespace Wt
 {
-    class WFileDropWidget;
+class WFileDropWidget;
 }
 
 namespace LambdaSnail::music
 {
-    class ProcessingPage final : public Wt::WContainerWidget
+    class ProcessLog;
+    namespace services
     {
-    public:
-        explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
+        class AudioFeaturesService;
+    }
 
-    private:
-        Wt::WFileDropWidget* m_FileDrop{};
-        Wt::WLineEdit* m_UrlInput{};
-        SongView* m_FileView{};
+class ProcessingPage final : public Wt::WContainerWidget
+{
+  public:
+    explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
 
-        music::services::AudioFeaturesService* m_AudioService{};
+  private:
+    Wt::WFileDropWidget* m_FileDrop{};
+    Wt::WLineEdit* m_UrlInput{};
+    SongView* m_FileView{};
 
-        void processAudioFile(std::filesystem::path const& filePath);
-        [[nodiscard]] std::expected<std::string, std::string>
-        executeShellCommand(std::string const& command) const;
-    };
-}
+    music::services::AudioFeaturesService* m_AudioService{};
+
+    std::mutex m_LogContainerMutex{};
+    WContainerWidget* m_LogContainer{};
+    ProcessLog* addNewLog(std::string const& name);
+
+    void processAudioFile(std::filesystem::path const& filePath, ProcessLog* log);
+    [[nodiscard]] std::expected<std::string, std::string>
+    executeShellCommand(std::string const& command) const;
+};
+} // namespace LambdaSnail::music
