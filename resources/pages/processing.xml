@@ -26,14 +26,13 @@
         </div>
 
         <div class="d-flex ">
-            <div class="m-2">
+            <div class="m-2 w-75">
                 <div class="card" style="m-2 w-50">
                     <div class="card-header">
                         <div class="d-flex" style="gap:2rem">
                             ${file-drop}
-                            <div class="d-flex w-50">
+                            <div class="d-flex w-50 me-auto">
                                 ${yt-input}
-                                <!--                        <button class="">Get from YouTube</button>-->
                                 ${yt-button}
                             </div>
 

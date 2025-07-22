@@ -27,7 +27,7 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
     auto* t = addNew<Wt::WTemplate>(Wt::WString::tr("processing-page"));
 
     m_UrlInput = t->bindNew<Wt::WLineEdit>("yt-input");
-    m_UrlInput->addStyleClass("w-25");
+    m_UrlInput->addStyleClass("w-50");
 
     auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Get from YouTube");
     button->setStyleClass("btn");
