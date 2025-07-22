@@ -24,8 +24,12 @@ class ProcessLog final : public Wt::WTemplate
      */
     void updateAll(std::string const& name, std::string const& message) const;
 
-    void setSuccessState() const;
-    void setErrorState(std::string const& error) const;
+    void showProgress();
+    void showSuccess();
+    void showError();
+
+    void setSuccessState();
+    void setErrorState(std::string const& error);
 
   private:
     bool b_IsDone { false };
@@ -34,5 +38,9 @@ class ProcessLog final : public Wt::WTemplate
     Wt::WText* m_Message;
 
     Wt::WApplication* m_App;
+
+    Wt::WText* m_ProgressDisplay;
+    Wt::WText* m_SuccessDisplay;
+    Wt::WText* m_ErrorDisplay;
 };
 } // namespace LambdaSnail::music

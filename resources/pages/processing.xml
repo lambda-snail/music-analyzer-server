@@ -79,8 +79,12 @@
                 ${title}
             </div>
             <div class="card-body d-flex flex-row">
-                <div class="spinner-border mx-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                <div class="mx-2">
+                    <div id="1" class="spinner-border" role="status" style="display: ${progress-display}">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div id="2" data-role="success" class="badge text-bg-success" style="display: ${success-display}">Success</div>
+                    <div id="3" class="badge text-bg-danger" style="display: ${error-display}">Error</div>
                 </div>
                 <div>
                     ${message}

@@ -9,6 +9,10 @@ LambdaSnail::music::ProcessLog::ProcessLog(std::string const& name, Wt::WApplica
 {
     m_Title = bindNew<Wt::WText>("title", name);
     m_Message = bindNew<Wt::WText>("message", "Starting process");
+
+    static_cast<Wt::WTemplate*>(this)->bindString("progress-display", "block");
+    static_cast<Wt::WTemplate*>(this)->bindString("success-display", "none");
+    static_cast<Wt::WTemplate*>(this)->bindString("error-display", "none");
 }
 
 void LambdaSnail::music::ProcessLog::updateName(std::string const& name) const
@@ -30,7 +34,8 @@ void LambdaSnail::music::ProcessLog::updateMessage(std::string const& message) c
         m_App->triggerUpdate();
     }
 }
-void LambdaSnail::music::ProcessLog::updateAll(std::string const& name, std::string const& message) const
+void LambdaSnail::music::ProcessLog::updateAll(std::string const& name,
+                                               std::string const& message) const
 {
     m_App->log("notice") << message;
 
@@ -41,17 +46,46 @@ void LambdaSnail::music::ProcessLog::updateAll(std::string const& name, std::str
         m_App->triggerUpdate();
     }
 }
-void LambdaSnail::music::ProcessLog::setSuccessState() const
+void LambdaSnail::music::ProcessLog::showProgress()
 {
-    updateMessage("Analysis complete!");
+    bindString("progress-display", "block");
+    bindString("success-display", "none");
+    bindString("error-display", "none");
 }
 
-void LambdaSnail::music::ProcessLog::setErrorState(std::string const& error) const
+void LambdaSnail::music::ProcessLog::showSuccess()
+{
+    bindString("progress-display", "none");
+    bindString("success-display", "block");
+    bindString("error-display", "none");
+}
+
+void LambdaSnail::music::ProcessLog::showError()
+{
+    bindString("progress-display", "none");
+    bindString("success-display", "none");
+    bindString("error-display", "block");
+}
+
+void LambdaSnail::music::ProcessLog::setSuccessState()
+{
+    m_App->log("notice") << "Analysis complete!";
+
+    Wt::WApplication::UpdateLock uiLock(m_App);
+    if (uiLock) {
+        m_Message->setText("Analysis complete!");
+        showSuccess();
+        m_App->triggerUpdate();
+    }
+}
+
+void LambdaSnail::music::ProcessLog::setErrorState(std::string const& error)
 {
     m_App->log("error") << error;
     Wt::WApplication::UpdateLock uiLock(m_App);
     if (uiLock) {
         m_Message->setText(error);
+        showError();
         m_App->triggerUpdate();
     }
 }
