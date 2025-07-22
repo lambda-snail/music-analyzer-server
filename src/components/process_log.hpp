@@ -14,26 +14,17 @@ namespace LambdaSnail::music
 class ProcessLog final : public Wt::WTemplate
 {
   public:
-    explicit ProcessLog(std::string name, Wt::WApplication* app);
+    explicit ProcessLog(std::string const& name, Wt::WApplication* app);
 
     void updateName(std::string const& name);
     void updateMessage(std::string const& message);
 
   private:
-    std::string m_SongName;
-    std::string m_CurrentMessage { "Initializing job ..." };
-    bool b_IsDone{false};
-
-    // The log will be updated from event callbacks. They should only be
-    // updated by one thread at a time, but just to be sure we lock the log first
-    std::mutex m_Mutex{};
+    bool b_IsDone { false };
 
     Wt::WText* m_Title;
     Wt::WText* m_Message;
 
     Wt::WApplication* m_App;
-
-    void bindName();
-    void bindMessage();
 };
 } // namespace LambdaSnail::music

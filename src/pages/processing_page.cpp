@@ -185,7 +185,7 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
             })
             .and_then([this, logger](std::filesystem::path&& path) {
                 // m_App->log("notice") << "Processing file: " << path.string();
-                logger->updateName(path.root_name().string()); // TODO: Make function to update both at same time
+                logger->updateName(path.stem().string()); // TODO: Make function to update both at same time
                 logger->updateMessage(std::format(
                     "{} downloaded successfully! Converting to mp3 ...", path.filename().string()));
 
