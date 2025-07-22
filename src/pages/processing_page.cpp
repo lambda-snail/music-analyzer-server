@@ -17,7 +17,6 @@
 #include <cstdio>
 #include <fstream>
 #include <future>
-#include <iostream>
 #include <syncstream>
 #include <thread>
 
@@ -33,18 +32,6 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
     auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Get from YouTube");
     button->setStyleClass("btn");
     button->addStyleClass("primary");
-    // button->pre
-
-    // signal_LogAdded.connect([this](ProcessLog* log) {
-    //     std::osyncstream(std::cout) << std::this_thread::get_id() << std::endl;
-    //     m_LogContainer->addWidget(std::unique_ptr<ProcessLog>(log));
-    // });
-    //
-    // signal_MessageChanged.connect([this](std::string const& message, ProcessLog* log) {
-    //     Wt::WServer::instance()->post(m_App->sessionId(),[log, &message]() {
-    //         log->updateMessage(message);
-    //     });
-    // });
 
     button->clicked().connect([this]() {
         auto const& videoId = m_UrlInput->valueText().toUTF8();
@@ -52,23 +39,9 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
             return;
         }
 
-        std::osyncstream(std::cout) << std::this_thread::get_id() << std::endl;
-
-        // auto* logger = new ProcessLog(videoId);
-        // signal_LogAdded.emit(logger);
-        // processYouTubeId(videoId, logger);
-
         auto* logger = addNewLog(videoId, m_App);
         std::thread([this, logger, videoId]() {
-
-            // app->attachThread(true);
-            //Wt::WApplication::UpdateLock lock(app);
-            //if (lock) {
-                // signal_LogAdded.emit(logger);
             processYouTubeId(videoId, logger);
-            //}
-
-            // app->attachThread(false);
         }).detach();
     });
 
@@ -85,25 +58,8 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
     m_FileDrop->setAcceptDirectories(false);
 
     m_LogContainer = t->bindNew<Wt::WContainerWidget>("process-log");
-    // m_FileDrop->drop().connect([this](std::vector<Wt::WFileDropWidget::File*> const& files) {
-    //     int const maxFiles   = 5;
-    //     unsigned prevNbFiles = m_FileDrop->uploads().size() - files.size();
-    //     for (unsigned i = 0; i < files.size(); i++) {
-    //         if (prevNbFiles + i >= maxFiles) {
-    //             m_FileDrop->cancelUpload(files[i]);
-    //         }
-    //     }
-    //
-    //     if (m_FileDrop->uploads().size() >= maxFiles)
-    //         m_FileDrop->setAcceptDrops(false);
-    // });
 
     m_FileDrop->uploaded().connect([this](Wt::WFileDropWidget::File* file) {
-        // std::vector<Wt::WFileDropWidget::File*> uploads = m_FileDrop->uploads();
-        // std::size_t idx                                 = 0;
-        //  for (; idx != uploads.size(); ++idx)
-        //      if (uploads[idx] == file)
-        //          break;
 
         // Stub to test file processing
 
@@ -114,13 +70,6 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
             processAudioFile(std::filesystem::path(file->uploadedFile().spoolFileName()), logger);
             m_App->attachThread(false);
         }).detach();
-
-        // auto handle = std::async(std::launch::async, [this, file, logger]() {
-        //     processAudioFile(std::filesystem::path(file->uploadedFile().spoolFileName()),
-        //     logger);
-        // });
-
-        // handle.wait();
     });
 
     m_FileDrop->tooLarge().connect([this](Wt::WFileDropWidget::File* file, uint64_t size) {
@@ -129,8 +78,6 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
         for (; idx != uploads.size(); ++idx)
             if (uploads[idx] == file)
                 break;
-        // m_FileDrop->widget(idx)->removeStyleClass("spinner");
-        // m_FileDrop->widget(idx)->addStyleClass("failed");
     });
 
     m_FileDrop->uploadFailed().connect([this](Wt::WFileDropWidget::File* file) {
@@ -139,8 +86,6 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
         for (; idx != uploads.size(); ++idx)
             if (uploads[idx] == file)
                 break;
-        // m_FileDrop->widget(idx)->removeStyleClass("spinner");
-        // m_FileDrop->widget(idx)->addStyleClass("failed");
     });
 }
 
