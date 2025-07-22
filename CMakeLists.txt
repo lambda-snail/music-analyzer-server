@@ -25,16 +25,6 @@ add_executable(music-analyzer-server main.cpp
         src/components/song_view.hpp
         src/pages/processing_page.cpp
         src/pages/processing_page.hpp
-        src/application/user.hpp
-        src/application/user.cpp
-        src/application/session.cpp
-        src/application/session.hpp
-        src/models/user_details.cpp
-        src/models/user_details.hpp
-        src/pages/authentication_page.cpp
-        src/pages/authentication_page.hpp
-        src/pages/registration_view.cpp
-        src/pages/registration_view.hpp
         src/services/audio_features_service.cpp
         src/services/audio_features_service.hpp
         src/models/audio.hpp)
@@ -47,7 +37,7 @@ target_link_libraries(music-analyzer-server
         PUBLIC
         nlohmann)
 
-target_link_libraries(music-analyzer-server PUBLIC curl wt wthttp wtdbo wtdbosqlite3)
+target_link_libraries(music-analyzer-server PUBLIC curl wt wthttp)
 
 add_custom_command(
         TARGET music-analyzer-server PRE_BUILD
