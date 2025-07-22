@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Wt/WTemplate.h>
-#include <mutex>
+#include <expected>
 
 namespace LambdaSnail::music
 {
@@ -23,6 +23,9 @@ class ProcessLog final : public Wt::WTemplate
      * acquiring the application lock twice.
      */
     void updateAll(std::string const& name, std::string const& message) const;
+
+    void setSuccessState() const;
+    void setErrorState(std::string const& error) const;
 
   private:
     bool b_IsDone { false };

@@ -41,3 +41,17 @@ void LambdaSnail::music::ProcessLog::updateAll(std::string const& name, std::str
         m_App->triggerUpdate();
     }
 }
+void LambdaSnail::music::ProcessLog::setSuccessState() const
+{
+    updateMessage("Analysis complete!");
+}
+
+void LambdaSnail::music::ProcessLog::setErrorState(std::string const& error) const
+{
+    m_App->log("error") << error;
+    Wt::WApplication::UpdateLock uiLock(m_App);
+    if (uiLock) {
+        m_Message->setText(error);
+        m_App->triggerUpdate();
+    }
+}

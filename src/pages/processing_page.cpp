@@ -104,53 +104,59 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
 {
     logger->updateMessage("Downloading from YouTube, this may take a while ...");
 
-    // signal_MessageChanged.emit("Downloading from YouTube, this may take a while ...", logger);
-    auto const downloadResult =
-        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' -q {}", videoId));
-    if (not downloadResult.has_value()) {
-        // m_App->log("error") << (downloadResult.error());
-        logger->updateMessage(downloadResult.error());
-        return;
-    }
-
     auto const processResult =
-        executeShellCommand(
-            std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' --get-filename {}", videoId))
-            .transform([](std::string const&& fileName) {
-                if (fileName.ends_with('\n')) {
-                    return std::filesystem::path(
-                        std::string_view(fileName.cbegin(), --fileName.cend()));
-                }
+        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' -t mp3 -q {}", videoId))
+        .and_then([this, &videoId]([[maybe_unused]] std::string const& result) {
+            // --get-filename returns .webm even if we use '-t mp3' so hard-code the format
+            return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.mp3' --get-filename {}", videoId));
+        })
+        .transform([](std::string const&& fileName) {
+            if (fileName.ends_with('\n')) {
+                return std::filesystem::path(
+                    std::string_view(fileName.cbegin(), --fileName.cend()));
+            }
 
-                return std::filesystem::path(fileName);
-            })
-            .and_then([this, logger](std::filesystem::path&& path) {
-                logger->updateAll(
-                    path.stem().string(),
-                    std::format(
-                        "{} downloaded successfully! Converting to mp3 ...", path.filename().string())
-                );
+            return std::filesystem::path(fileName);
+        })
+        .and_then([logger](std::filesystem::path const&& path) {
+            logger->updateAll(
+                path.stem().string(),
+                std::format(
+                    "{} downloaded successfully! ...", path.filename().string())
+            );
 
-                return executeShellCommand(
-                           std::format(
-                               R"(ffmpeg -i "{}" "{}/{}.mp3" -n -loglevel fatal)", // If file
-                                                                                   // exists, we
-                                                                                   // just use
-                                                                                   // that
-                               path.string(),
-                               path.parent_path().string(),
-                               path.stem().string()))
-                    .transform([&path](std::string const&& str) { return path; });
-            })
-            .and_then([this, logger](std::filesystem::path&& path) {
-                path.replace_extension("mp3");
-                processAudioFile(path, logger);
-                return std::expected<std::filesystem::path, std::string>{};
-            });
+            return std::expected<std::filesystem::path, std::string>(path);
+        })
+        // .and_then([this, logger](std::filesystem::path&& path) {
+        //     logger->updateAll(
+        //         path.stem().string(),
+        //         std::format(
+        //             "{} downloaded successfully! Converting to mp3 ...", path.filename().string())
+        //     );
+        //
+        //     return executeShellCommand(
+        //                std::format(
+        //                    R"(ffmpeg -i "{}" "{}/{}.mp3" -n -loglevel fatal)", // If file
+        //                                                                        // exists, we
+        //                                                                        // just use
+        //                                                                        // that
+        //                    path.string(),
+        //                    path.parent_path().string(),
+        //                    path.stem().string()))
+        //             .transform([&path](std::string const&& str) {
+        //                 path.replace_extension("mp3");
+        //                 return path;
+        //             });
+        // })
+        .and_then([this, logger](std::filesystem::path&& path) {
+            processAudioFile(path, logger);
+            logger->setSuccessState();
+
+            return std::expected<std::filesystem::path, std::string>{};
+        });
 
     if (not processResult.has_value()) {
-        //m_App->log("error") << (processResult.error());
-        return;
+        logger->setErrorState(processResult.error());
     }
 }
 
@@ -195,8 +201,6 @@ void LambdaSnail::music::ProcessingPage::processAudioFile(
             m_FileView->addSong(std::move(songInfo));
             m_App->triggerUpdate();
         }
-
-        log->updateMessage("Completed!"); // TODO: Add lockless version for the case where you already have the lock?
     }
 
     // TODO: Report error here or return std::unexpected

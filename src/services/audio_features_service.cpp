@@ -63,6 +63,15 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
         };
     }
 
+    // TODO: Example error result
+    // {
+    //     "type" : "about:blank",
+    //     "title" : "Payload Too Large",
+    //     "status" : 413,
+    //     "detail" : "Maximum upload size exceeded",
+    //     "instance" : "/v1/analysis/audio-features"
+    //   }
+
     app->log("error") << "Error when sending request to the analysis server: " << static_cast<size_t>(code);
     app->log("error") << curl_easy_strerror(code);
 
