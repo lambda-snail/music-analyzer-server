@@ -147,16 +147,12 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
 LambdaSnail::music::ProcessLog*
 LambdaSnail::music::ProcessingPage::addNewLog(std::string const& name, Wt::WApplication* app)
 {
-    std::unique_lock lock{m_LogContainerMutex};
+    Wt::WApplication::UpdateLock uiLock(m_App);
+    if (uiLock) {
+        return m_LogContainer->addNew<ProcessLog>(name, app);
+    }
 
-    ProcessLog* logger{};
-    //Wt::WApplication::UpdateLock uiLock(m_App);
-    //if (uiLock) {
-        logger = m_LogContainer->addNew<ProcessLog>(name, app);
-    //    m_App->triggerUpdate();
-    //}
-
-    return logger;
+    return nullptr;
 }
 void LambdaSnail::music::ProcessingPage::processYouTubeId(
     std::string const& videoId, ProcessLog* logger)
@@ -184,10 +180,6 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
                 return std::filesystem::path(fileName);
             })
             .and_then([this, logger](std::filesystem::path&& path) {
-                // m_App->log("notice") << "Processing file: " << path.string();
-                logger->updateName(path.stem().string()); // TODO: Make function to update both at same time
-                logger->updateMessage(std::format(
-                    "{} downloaded successfully! Converting to mp3 ...", path.filename().string()));
                 logger->updateAll(
                     path.stem().string(),
                     std::format(

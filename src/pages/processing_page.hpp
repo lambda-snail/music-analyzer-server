@@ -31,7 +31,6 @@ class ProcessingPage final : public Wt::WContainerWidget
 
     music::services::AudioFeaturesService* m_AudioService{};
 
-    std::mutex m_LogContainerMutex{};
     WContainerWidget* m_LogContainer{};
     ProcessLog* addNewLog(std::string const& name, Wt::WApplication* app);
 
