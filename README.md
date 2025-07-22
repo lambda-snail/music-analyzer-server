@@ -1,11 +1,45 @@
-# Running Locally
+# Requirements
+
+- Linux
+    - Linux - Built on an Ubuntu machine, and some things in the Dockerfile may rely on how things are configured in Ubuntu. You may need to tweak some parameters in the dockerfile if your environment differs.
+    - Not tested on Windows
+- Cpp23 - Built using Clang 19, but may work with GCC as well. 
+- Web Toolkit (using wthttpd)
+    - Please refer to the [installation instructions](https://www.webtoolkit.eu/wt/doc/reference/html/InstallationUnix.html) for requirements. 
+
+# Running and Deploying
+
+## Run locally
 
 ```bash
  ./todo --docroot . --config ./config/wt_config.xml --http-address 0.0.0.0 --http-port 9090
 ```
 
-The `resourcesURL` property in `wt_config.xml` should point to the `resources/` directory. The path is relative to
-the `docroot` directory.
+The `resourcesURL` property in `wt_config.xml` should point to the `resources/` directory. The path is relative to the `docroot` directory.
+
+## Deploy
+
+To build the docker container, run 
+
+```shell
+./build-docker.sh
+```
+
+This copies the WT libraries to the build directory before calling `docker build`. This is so we don't have to build WT from source every time we build the docker image.
+
+The next step depends on the environment you deploy to. In my case I deploy to my own container registry in AWS, so the process looks something like this:
+
+```shell
+aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin XXX.dkr.ecr.eu-north-1.amazonaws.com/your-container-registry
+docker tag IMAGE-ID XXX.dkr.ecr.eu-north-1.amazonaws.com/your-container-registry:latest
+docker push XXX.dkr.ecr.eu-north-1.amazonaws.com/your-container-registry:latest
+```
+
+Where `XXX` is you account id, and `eu--north-1` is the region - your region will probably be different. After this step you can put it in a ECS task and add a load balancer to expose the server to the outside world. These commands will in turn:
+
+1. Provide an access token to `docker` so it can push the image to your container registry
+2. Tag the image, and
+3. Finally push the new image to your registry
 
 # Features
 
