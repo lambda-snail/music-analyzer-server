@@ -22,7 +22,7 @@ The `resourcesURL` property in `wt_config.xml` should point to the `resources/` 
 To build the docker container, run 
 
 ```shell
-./build-docker.sh
+./build-docker.sh release | debug
 ```
 
 This copies the WT libraries to the build directory before calling `docker build`. This is so we don't have to build WT from source every time we build the docker image.
