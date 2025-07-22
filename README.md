@@ -73,6 +73,13 @@ Then we can convert it to mp3 using ffmpeg.
 ffmpeg -i <file>.webm <file>.mp3
 ```
 
+Finally, we note that we can also use `yt-dlp` to convert the clip to mp3 directly. This seems to be faster than performing the process above manually,
+but the process above gives us more control (if we need it).
+
+```shell
+yt-dlp -o '%(title)s.%(ext)s' -t mp3 -q btPJPFnesV4
+```
+
 ## UI Updates From Threads
 
 The server processes each song asynchronously, updating the UI as it goes along. To accomplish this using the web toolkit, we need to perform two steps:
