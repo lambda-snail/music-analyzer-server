@@ -16,7 +16,8 @@ LambdaSnail::music::services::AudioFeaturesService::AudioFeaturesService()
 
     m_Headers = HeaderPointer(headers);
 
-    curl_easy_setopt(m_Curl.get(), CURLOPT_SSL_VERIFYPEER, 0);
+    // Disables verification of SSL cert - dangerous but may simplify during development
+    //curl_easy_setopt(m_Curl.get(), CURLOPT_SSL_VERIFYPEER, 0);
 }
 
 std::expected<LambdaSnail::music::AudioAnalysis, std::string>
