@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 LABEL authors="LambdaSnail"
 COPY cmake-build-debug/music-analyzer-server-0.3.0-Linux.deb ./
-COPY "cmake-build-debug/libwt.so.4.11.4" "cmake-build-debug/libwthttp.so.4.11.4" "cmake-build-debug/libwtdbo.so.4.11.4" "cmake-build-debug/libwtdbosqlite3.so.4.11.4" "/usr/local/lib/"
+COPY "cmake-build-debug/libwt.so.4.11.4" "cmake-build-debug/libwthttp.so.4.11.4" "/usr/local/lib/"
 ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin
 
 # Certificate needed for SSL connection to api.reccobeats.com
