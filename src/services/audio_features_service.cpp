@@ -47,30 +47,40 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
     CURLcode code = curl_easy_perform(m_Curl.get());
 
     if (code == CURLcode::CURLE_OK) {
-        app->log("notice") << "Request successful.";
+        int64_t httpCode;
+        curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
+
+        app->log("notice") << "HTTP status code is " << httpCode;
 
         auto obj = nlohmann::json::parse(response);
-        return AudioAnalysis{
-            .acousticness     = obj["acousticness"].get<double>(),
-            .danceability     = obj["danceability"].get<double>(),
-            .energy           = obj["energy"].get<double>(),
-            .instrumentalness = obj["instrumentalness"].get<double>(),
-            .liveness         = obj["liveness"].get<double>(),
-            .loudness         = obj["loudness"].get<double>(),
-            .speechiness      = obj["speechiness"].get<double>(),
-            .tempo            = obj["tempo"].get<double>(),
-            .valence          = obj["valence"].get<double>()
-        };
-    }
 
-    // TODO: Example error result
-    // {
-    //     "type" : "about:blank",
-    //     "title" : "Payload Too Large",
-    //     "status" : 413,
-    //     "detail" : "Maximum upload size exceeded",
-    //     "instance" : "/v1/analysis/audio-features"
-    //   }
+        // An http call can succeed in more ways than 2xx, but in this case it's all we're interested in.
+        if (httpCode >= 200 and httpCode < 300) {
+            return AudioAnalysis{
+                .acousticness     = obj["acousticness"].get<double>(),
+                .danceability     = obj["danceability"].get<double>(),
+                .energy           = obj["energy"].get<double>(),
+                .instrumentalness = obj["instrumentalness"].get<double>(),
+                .liveness         = obj["liveness"].get<double>(),
+                .loudness         = obj["loudness"].get<double>(),
+                .speechiness      = obj["speechiness"].get<double>(),
+                .tempo            = obj["tempo"].get<double>(),
+                .valence          = obj["valence"].get<double>()
+            };
+        }
+
+        // Example error result
+        // {
+        //     "type" : "about:blank",
+        //     "title" : "Payload Too Large",
+        //     "status" : 413,
+        //     "detail" : "Maximum upload size exceeded",
+        //     "instance" : "/v1/analysis/audio-features"
+        //   }
+
+        app->log("error") << response;
+        return std::unexpected( std::format("{} - {}", obj["title"].get<std::string>(), obj["detail"].get<std::string>()) );
+    }
 
     app->log("error") << "Error when sending request to the analysis server: " << static_cast<size_t>(code);
     app->log("error") << curl_easy_strerror(code);
