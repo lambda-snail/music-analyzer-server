@@ -16,8 +16,13 @@ class ProcessLog final : public Wt::WTemplate
   public:
     explicit ProcessLog(std::string const& name, Wt::WApplication* app);
 
-    void updateName(std::string const& name);
-    void updateMessage(std::string const& message);
+    void updateName(std::string const& name) const;
+    void updateMessage(std::string const& message) const;
+    /**
+     * If you need to update both the name and message, then this function allows to do this without
+     * acquiring the application lock twice.
+     */
+    void updateAll(std::string const& name, std::string const& message) const;
 
   private:
     bool b_IsDone { false };

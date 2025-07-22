@@ -11,7 +11,7 @@ LambdaSnail::music::ProcessLog::ProcessLog(std::string const& name, Wt::WApplica
     m_Message = bindNew<Wt::WText>("message", "Starting process");
 }
 
-void LambdaSnail::music::ProcessLog::updateName(std::string const& name)
+void LambdaSnail::music::ProcessLog::updateName(std::string const& name) const
 {
     Wt::WApplication::UpdateLock uiLock(m_App);
     if (uiLock) {
@@ -20,12 +20,23 @@ void LambdaSnail::music::ProcessLog::updateName(std::string const& name)
     }
 }
 
-void LambdaSnail::music::ProcessLog::updateMessage(std::string const& message)
+void LambdaSnail::music::ProcessLog::updateMessage(std::string const& message) const
 {
     m_App->log("notice") << message;
 
     Wt::WApplication::UpdateLock uiLock(m_App);
     if (uiLock) {
+        m_Message->setText(message);
+        m_App->triggerUpdate();
+    }
+}
+void LambdaSnail::music::ProcessLog::updateAll(std::string const& name, std::string const& message) const
+{
+    m_App->log("notice") << message;
+
+    Wt::WApplication::UpdateLock uiLock(m_App);
+    if (uiLock) {
+        m_Title->setText(name);
         m_Message->setText(message);
         m_App->triggerUpdate();
     }

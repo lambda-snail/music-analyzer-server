@@ -188,6 +188,11 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
                 logger->updateName(path.stem().string()); // TODO: Make function to update both at same time
                 logger->updateMessage(std::format(
                     "{} downloaded successfully! Converting to mp3 ...", path.filename().string()));
+                logger->updateAll(
+                    path.stem().string(),
+                    std::format(
+                        "{} downloaded successfully! Converting to mp3 ...", path.filename().string())
+                );
 
                 return executeShellCommand(
                            std::format(
