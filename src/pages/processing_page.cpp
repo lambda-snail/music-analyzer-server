@@ -110,10 +110,10 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
     }
 
     auto const processResult =
-        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} -q -t mp3 {}", cookieFileArgument, videoId))
+        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} --restrict-filenames -q -t mp3 {}", cookieFileArgument, videoId))
         .and_then([this, &cookieFileArgument, &videoId]([[maybe_unused]] std::string const& result) {
             // --get-filename returns .webm even if we use '-t mp3' so hard-code the format
-            return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.mp3' {} --get-filename {}", cookieFileArgument, videoId));
+            return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.mp3' {} --restrict-filenames  --get-filename {}", cookieFileArgument, videoId));
 
             //return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} --get-filename {}", cookieFileArgument, videoId));
         })
