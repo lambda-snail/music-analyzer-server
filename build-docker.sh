@@ -1,7 +1,17 @@
 build_mode=$1
 if [ -z $build_mode ];
   then {
-    build_mode = "release"
+    build_mode='release'
+  }
+fi
+
+echo "Building in $build_mode mode ..."
+
+use_cookies=$2
+if [ "$use_cookies" = "true" ];
+  then {
+    echo 'Embedding cookie file'
+    . ./use-cookies.sh $build_mode
   }
 fi
 
