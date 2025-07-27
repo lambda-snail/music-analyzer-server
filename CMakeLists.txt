@@ -2,7 +2,7 @@ include(FetchContent)
 
 cmake_minimum_required(VERSION 3.30)
 project(music-analyzer-server
-    VERSION 0.3.0
+    VERSION 0.8.0
 )
 
 set(CMAKE_CXX_STANDARD 23)
