@@ -3,6 +3,7 @@
 #include "components/process_log.hpp"
 #include "components/song_view.hpp"
 #include "services/audio_features_service.hpp"
+#include "services/cookie_info.hpp"
 
 #include <Wt/WContainerWidget.h>
 #include <Wt/WFileDropWidget.h>
@@ -103,11 +104,16 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
 {
     logger->updateMessage("Downloading from YouTube, this may take a while ...");
 
+    std::string cookieFileArgument{};
+    if (LambdaSnail::services::CookieInfo::hasCookieFile()) {
+        cookieFileArgument = std::format("--cookies {}", LambdaSnail::services::CookieInfo::getCookieFile().string());
+    }
+
     auto const processResult =
-        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' -q {}", videoId))
-        .and_then([this, &videoId]([[maybe_unused]] std::string const& result) {
+        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} -q {}", cookieFileArgument, videoId))
+        .and_then([this, &cookieFileArgument, &videoId]([[maybe_unused]] std::string const& result) {
             // --get-filename returns .webm even if we use '-t mp3' so hard-code the format
-            return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' --get-filename {}", videoId));
+            return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} --get-filename {}", cookieFileArgument, videoId));
         })
         .transform([](std::string const&& fileName) {
             if (fileName.ends_with('\n')) {

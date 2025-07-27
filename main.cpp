@@ -1,5 +1,6 @@
 #include "application/MusicApplication.hpp"
 #include "services/audio_features_service.hpp"
+#include "services/cookie_info.hpp"
 
 #include <Wt/Auth/AuthWidget.h>
 #include <Wt/Dbo/Exception.h>
@@ -14,6 +15,15 @@ int main(int argc, char** argv)
 
     try {
         Wt::WServer server{argc, argv, WTHTTP_CONFIGURATION};
+
+        // To simplify things, we look for the presence of a cookie file with hard coded name, rather than try
+        // to parse the program arguments (which would give more flexibility, but right now we don't need that
+        if (LambdaSnail::services::CookieInfo::hasCookieFile()) {
+            server.log("info") << "Using cookies from file: " << LambdaSnail::services::CookieInfo::getCookieFile().string();
+        }
+        else {
+            server.log("info") << "Proceeding without cookie file";
+        }
 
         server.addEntryPoint(Wt::EntryPointType::Application, [&](const Wt::WEnvironment& env) {
             auto app = std::make_unique<LambdaSnail::music::MusicApplication>(env, std::make_unique<LambdaSnail::music::services::AudioFeaturesService>());
