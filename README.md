@@ -1,3 +1,25 @@
+# Overview
+
+This project is made for a friend of mine who needed to expose a simple interface for her students to be able to gather song
+data for a statistics course project. This song data was previously provided by Spotify but the API endpoint has been deprecated. However,
+
+However, there is another publicly available API that provides similar data at [Reccobeats](https://reccobeats.com/docs/apis/extract-audio-features).
+This application allows users to send mp3 files to this API for analysis. To simplify even further, it also allows the user to choose a YouTube song for
+analysis via [yt-dlp](https://github.com/yt-dlp/yt-dlp).
+
+The project is built using C++ and the [Web Toolkit](https://www.webtoolkit.eu/wt/download). Since the purpose is very specific, I have made no
+attempt to make the project usable in general. It will compile on Ubuntu using clang (but see the CMake file for dependencies), but I have no idea
+if it will work on other platforms - please let me know if you try :)
+
+The source code is made public as per the requirements of the GPL license, and also with a hope that it can serve as a future reference for anyone
+who would like to see how to do certain things with WT, such as push notifications.
+
+## Disclaimer
+
+- This application is provided as-is, without any warranty or guarantees, nor do I assume any liability for anything that may happen when using it.
+- Although the application download songs from YouTube, the downloaded files are never exposed to the users and are used for analysis purpose only. 
+- The project is provided under the GPL license, as per the requirements of the [Web Toolkit](https://www.webtoolkit.eu/wt/download). 
+
 # Requirements
 
 - Linux
@@ -79,6 +101,19 @@ but the process above gives us more control (if we need it).
 ```shell
 yt-dlp -o '%(title)s.%(ext)s' -t mp3 -q btPJPFnesV4
 ```
+
+### Cookies
+
+YouTube seems to be blocking data center IPs, so it is possible that `yt-dlp` works when running locally, but breaks when run from the cloud. To work around this, cookies
+from a dummy account can be used when making a request using the `--cookies` flag. An example of how cookies can be exported can be found in `use-cookies.sh` which exports
+the cookies from a firefox profile with a known name.
+
+Please be careful when exporting cookies, so that you don't export "real" cookies that provide access to sits you may be using.
+
+Please see the following links for more information:
+
+- https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies
+- https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp
 
 ## UI Updates From Threads
 
