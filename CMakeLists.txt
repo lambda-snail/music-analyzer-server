@@ -18,18 +18,15 @@ FetchContent_MakeAvailable(nlohmann)
 add_library(nlohmann INTERFACE)
 target_include_directories(nlohmann INTERFACE ${nlohmann_SOURCE_DIR}/include)
 
-add_executable(music-analyzer-server main.cpp
-        src/components/process_log.cpp
-        src/components/process_log.hpp
-        src/components/song_view.cpp
-        src/components/song_view.hpp
-        src/pages/processing_page.cpp
-        src/pages/processing_page.hpp
-        src/services/audio_features_service.cpp
-        src/services/audio_features_service.hpp
-        src/models/audio.hpp
-        src/services/cookie_info.cpp
-        src/services/cookie_info.hpp)
+add_executable(music-analyzer-server
+        main.cpp
+        src/components/process_log.cpp          src/components/process_log.hpp
+        src/components/song_view.cpp            src/components/song_view.hpp
+        src/pages/processing_page.cpp           src/pages/processing_page.hpp
+        src/services/audio_features_service.cpp src/services/audio_features_service.hpp
+        src/services/cookie_info.cpp            src/services/cookie_info.hpp
+        src/application/lambda_resource.cpp     src/application/lambda_resource.hpp
+        src/models/audio.hpp)
 
 #target_compile_options(music-analyzer-server PUBLIC "-fsanitize=undefined")
 

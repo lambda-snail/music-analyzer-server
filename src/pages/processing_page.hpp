@@ -1,5 +1,6 @@
 #pragma once
 
+#include "application/lambda_resource.hpp"
 #include "components/song_view.hpp"
 
 #include <Wt/WContainerWidget.h>
@@ -19,10 +20,19 @@ namespace LambdaSnail::music
         class AudioFeaturesService;
     }
 
+        /**
+         * The class responsible for coordinating the processing of music files. In a larger
+         * application this should probably be split up into smaller classes, but this application
+         * is so small that it's much easier to simply have everything related to processing in
+         * here.
+         */
 class ProcessingPage final : public Wt::WContainerWidget
 {
   public:
-    explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
+            void setupYoutubeProcessing(Wt::WTemplate* t);
+    void setupFileDrop(Wt::WTemplate* t);
+            void setupCssConversion(Wt::WTemplate* t);
+            explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
 
   private:
     Wt::WFileDropWidget* m_FileDrop{};
@@ -32,6 +42,9 @@ class ProcessingPage final : public Wt::WContainerWidget
     music::services::AudioFeaturesService* m_AudioService{};
 
     WContainerWidget* m_LogContainer{};
+
+    std::shared_ptr<application::LambdaResource> m_DataFile;
+
     ProcessLog* addNewLog(std::string const& name, Wt::WApplication* app);
 
     void processYouTubeId(std::string const& videoId, ProcessLog* logger);

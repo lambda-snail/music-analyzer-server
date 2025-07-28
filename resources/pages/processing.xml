@@ -31,9 +31,10 @@
                     <div class="card-header">
                         <div class="d-flex" style="gap:2rem">
                             ${file-drop}
-                            <div class="d-flex w-50 me-auto">
+                            <div class="d-flex w-50 me-auto" style="gap:1rem">
                                 ${yt-input}
                                 ${yt-button}
+                                ${get-data-button}
                             </div>
 
                             <button class="btn btn-primary" type="button" data-bs-toggle="collapse"

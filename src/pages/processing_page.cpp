@@ -1,5 +1,6 @@
 #include "processing_page.hpp"
 
+#include "application/lambda_resource.hpp"
 #include "components/process_log.hpp"
 #include "components/song_view.hpp"
 #include "services/audio_features_service.hpp"
@@ -8,12 +9,14 @@
 #include <Wt/WContainerWidget.h>
 #include <Wt/WFileDropWidget.h>
 #include <Wt/WLineEdit.h>
+#include <Wt/WLink.h>
 #include <Wt/WTemplate.h>
 #include <Wt/WText.h>
 
+#include <Wt/Http/Request.h>
+#include <Wt/Http/Response.h>
 #include <Wt/WApplication.h>
 #include <Wt/WPushButton.h>
-#include <Wt/WServer.h>
 #include <cerrno>
 #include <cstdio>
 #include <fstream>
@@ -21,18 +24,14 @@
 #include <syncstream>
 #include <thread>
 
-LambdaSnail::music::ProcessingPage::ProcessingPage(
-    LambdaSnail::music::services::AudioFeaturesService* audioService)
-    : m_AudioService(audioService), m_App(wApp)
+void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t)
 {
-    auto* t = addNew<Wt::WTemplate>(Wt::WString::tr("processing-page"));
-
     m_UrlInput = t->bindNew<Wt::WLineEdit>("yt-input");
     m_UrlInput->addStyleClass("w-50");
 
     auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Get from YouTube");
     button->setStyleClass("btn");
-    button->addStyleClass("primary");
+    button->addStyleClass("btn-primary");
 
     button->clicked().connect([this]() {
         auto const& videoId = m_UrlInput->valueText().toUTF8();
@@ -41,11 +40,11 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
         }
 
         auto* logger = addNewLog(videoId, m_App);
-        std::thread([this, logger, videoId]() {
-            processYouTubeId(videoId, logger);
-        }).detach();
+        std::thread([this, logger, videoId]() { processYouTubeId(videoId, logger); }).detach();
     });
-
+}
+void LambdaSnail::music::ProcessingPage::setupFileDrop(Wt::WTemplate* t)
+{
     m_FileView = t->bindNew<SongView>("file-list");
 
     m_FileDrop = t->bindNew<Wt::WFileDropWidget>("file-drop");
@@ -61,7 +60,6 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
     m_LogContainer = t->bindNew<Wt::WContainerWidget>("process-log");
 
     m_FileDrop->uploaded().connect([this](Wt::WFileDropWidget::File* file) {
-
         // Stub to test file processing
 
         auto* logger = addNewLog(file->clientFileName(), m_App);
@@ -88,6 +86,39 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
                 break;
     });
 }
+void LambdaSnail::music::ProcessingPage::setupCssConversion(Wt::WTemplate* t)
+{
+    m_DataFile = std::make_shared<application::LambdaResource>(
+        [this](Wt::Http::Request const& request, Wt::Http::Response& response) {
+            m_FileView->getRows([&response](int32_t columnCount, Wt::WTableRow* r) {
+                for (int32_t c = 0; c < columnCount; ++c) {
+                    if (auto const* text = dynamic_cast<Wt::WText*>(r->elementAt(c)->widget(0))) {
+                        response.out() << text->text() << (c != columnCount - 1 ? "," : "\n");
+                    }
+                }
+            });
+        },
+        "music-analysis.css");
+
+    Wt::WLink link(m_DataFile);
+    link.setTarget(Wt::LinkTarget::NewWindow);
+
+    auto* downloadButton = t->bindNew<Wt::WAnchor>("get-data-button", link, "Download Data");
+    downloadButton->setStyleClass("btn");
+    downloadButton->addStyleClass("btn-success");
+}
+LambdaSnail::music::ProcessingPage::ProcessingPage(
+    LambdaSnail::music::services::AudioFeaturesService* audioService)
+    : m_AudioService(audioService), m_App(wApp)
+{
+    auto* t = addNew<Wt::WTemplate>(Wt::WString::tr("processing-page"));
+
+    setupYoutubeProcessing(t);
+
+    setupCssConversion(t);
+
+    setupFileDrop(t);
+}
 
 LambdaSnail::music::ProcessLog*
 LambdaSnail::music::ProcessingPage::addNewLog(std::string const& name, Wt::WApplication* app)
@@ -106,61 +137,69 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
 
     std::string cookieFileArgument{};
     if (LambdaSnail::services::CookieInfo::hasCookieFile()) {
-        cookieFileArgument = std::format("--cookies {}", LambdaSnail::services::CookieInfo::getCookieFile().string());
+        cookieFileArgument = std::format(
+            "--cookies {}", LambdaSnail::services::CookieInfo::getCookieFile().string());
     }
 
     auto const processResult =
-        executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} --restrict-filenames -q -t mp3 {}", cookieFileArgument, videoId))
-        .and_then([this, &cookieFileArgument, &videoId]([[maybe_unused]] std::string const& result) {
-            // --get-filename returns .webm even if we use '-t mp3' so hard-code the format
-            return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.mp3' {} --restrict-filenames  --get-filename {}", cookieFileArgument, videoId));
+        executeShellCommand(
+            std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} --restrict-filenames -q -t mp3 {}",
+                        cookieFileArgument,
+                        videoId))
+            .and_then(
+                [this, &cookieFileArgument, &videoId]([[maybe_unused]] std::string const& result) {
+                    // --get-filename returns .webm even if we use '-t mp3' so hard-code the format
+                    return executeShellCommand(std::format(
+                        "yt-dlp -o '/tmp/%(title)s.mp3' {} --restrict-filenames  --get-filename {}",
+                        cookieFileArgument,
+                        videoId));
 
-            //return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {} --get-filename {}", cookieFileArgument, videoId));
-        })
-        .transform([](std::string const&& fileName) {
-            if (fileName.ends_with('\n')) {
-                return std::filesystem::path(
-                    std::string_view(fileName.cbegin(), --fileName.cend()));
-            }
+                    // return executeShellCommand(std::format("yt-dlp -o '/tmp/%(title)s.%(ext)s' {}
+                    // --get-filename {}", cookieFileArgument, videoId));
+                })
+            .transform([](std::string const&& fileName) {
+                if (fileName.ends_with('\n')) {
+                    return std::filesystem::path(
+                        std::string_view(fileName.cbegin(), --fileName.cend()));
+                }
 
-            return std::filesystem::path(fileName);
-        })
-        .and_then([logger](std::filesystem::path const&& path) {
-            logger->updateAll(
-                path.stem().string(),
-                std::format(
-                    "{} downloaded successfully! ...", path.filename().string())
-            );
+                return std::filesystem::path(fileName);
+            })
+            .and_then([logger](std::filesystem::path const&& path) {
+                logger->updateAll(
+                    path.stem().string(),
+                    std::format("{} downloaded successfully! ...", path.filename().string()));
 
-            return std::expected<std::filesystem::path, std::string>(path);
-        })
-        // .and_then([this, logger](std::filesystem::path&& path) {
-        //     logger->updateAll(
-        //         path.stem().string(),
-        //         std::format(
-        //             "{} downloaded successfully! Converting to mp3 ...", path.filename().string())
-        //     );
-        //
-        //     return executeShellCommand(
-        //                std::format(
-        //                    R"(ffmpeg -i "{}" "{}/{}.mp3" -n -loglevel fatal)", // If file
-        //                                                                        // exists, we
-        //                                                                        // just use
-        //                                                                        // that
-        //                    path.string(),
-        //                    path.parent_path().string(),
-        //                    path.stem().string()))
-        //             .transform([&path](std::string const&& str) {
-        //                 path.replace_extension("mp3");
-        //                 return path;
-        //             });
-        // })
-        .and_then([this, logger](std::filesystem::path&& path) {
-            processAudioFile(path, logger);
-            logger->setSuccessState();
+                return std::expected<std::filesystem::path, std::string>(path);
+            })
+            // .and_then([this, logger](std::filesystem::path&& path) {
+            //     logger->updateAll(
+            //         path.stem().string(),
+            //         std::format(
+            //             "{} downloaded successfully! Converting to mp3 ...",
+            //             path.filename().string())
+            //     );
+            //
+            //     return executeShellCommand(
+            //                std::format(
+            //                    R"(ffmpeg -i "{}" "{}/{}.mp3" -n -loglevel fatal)", // If file
+            //                                                                        // exists, we
+            //                                                                        // just use
+            //                                                                        // that
+            //                    path.string(),
+            //                    path.parent_path().string(),
+            //                    path.stem().string()))
+            //             .transform([&path](std::string const&& str) {
+            //                 path.replace_extension("mp3");
+            //                 return path;
+            //             });
+            // })
+            .and_then([this, logger](std::filesystem::path&& path) {
+                processAudioFile(path, logger);
+                logger->setSuccessState();
 
-            return std::expected<std::filesystem::path, std::string>{};
-        });
+                return std::expected<std::filesystem::path, std::string>{};
+            });
 
     if (not processResult.has_value()) {
         logger->setErrorState(processResult.error());
