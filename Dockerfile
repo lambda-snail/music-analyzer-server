@@ -1,6 +1,7 @@
 FROM ubuntu:latest
 ARG MODE="release"
 ARG DEB_VERSION="0.8.0"
+ARG CONFIG_FILENAME="wt_config_release.xml"
 LABEL authors="LambdaSnail"
 COPY cmake-build-${MODE}/music-analyzer-server-${DEB_VERSION}-Linux.deb ./
 COPY "cmake-build-${MODE}/libwt.so.4.11.4" "cmake-build-${MODE}/libwthttp.so.4.11.4" "/usr/local/lib/"
@@ -25,7 +26,7 @@ RUN apt-get update && \
 WORKDIR /usr/lambda-snail/music-server
 ENTRYPOINT ["./music-analyzer-server", \
             "--docroot", ".", \
-            "--config", "./config/wt_config.xml", \
+            "--config", "./config/${CONFIG_FILENAME}", \
             "--http-address", "0.0.0.0", \
             "--http-port", "80"]
 EXPOSE 80
