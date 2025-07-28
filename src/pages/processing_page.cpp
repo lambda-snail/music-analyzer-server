@@ -86,7 +86,7 @@ void LambdaSnail::music::ProcessingPage::setupFileDrop(Wt::WTemplate* t)
                 break;
     });
 }
-void LambdaSnail::music::ProcessingPage::setupCssConversion(Wt::WTemplate* t)
+void LambdaSnail::music::ProcessingPage::setupCsvConversion(Wt::WTemplate* t)
 {
     m_DataFile = std::make_shared<application::LambdaResource>(
         [this](Wt::Http::Request const& request, Wt::Http::Response& response) {
@@ -98,7 +98,7 @@ void LambdaSnail::music::ProcessingPage::setupCssConversion(Wt::WTemplate* t)
                 }
             });
         },
-        "music-analysis.css");
+        "music-analysis.csv");
 
     Wt::WLink link(m_DataFile);
     link.setTarget(Wt::LinkTarget::NewWindow);
@@ -115,7 +115,7 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
 
     setupYoutubeProcessing(t);
 
-    setupCssConversion(t);
+    setupCsvConversion(t);
 
     setupFileDrop(t);
 }

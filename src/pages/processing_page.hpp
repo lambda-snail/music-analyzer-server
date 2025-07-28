@@ -31,7 +31,7 @@ class ProcessingPage final : public Wt::WContainerWidget
   public:
             void setupYoutubeProcessing(Wt::WTemplate* t);
     void setupFileDrop(Wt::WTemplate* t);
-            void setupCssConversion(Wt::WTemplate* t);
+            void setupCsvConversion(Wt::WTemplate* t);
             explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
 
   private:
