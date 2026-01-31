@@ -1,11 +1,16 @@
 include(FetchContent)
 
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 4.0)
 project(music-analyzer-server
-    VERSION 0.8.0
+    VERSION 0.8.5
 )
 
 set(CMAKE_CXX_STANDARD 23)
+
+set(LIBWT_PATH /usr/local/lib/libwt.so.4.12.2)
+set(LIBWTDBO_PATH /usr/local/lib/libwtdbo.so.4.12.2)
+set(LIBWTDBOSQLITE_PATH /usr/local/lib/libwtdbosqlite3.so.4.12.2)
+set(LIBWTHTTP_PATH /usr/local/lib/libwthttp.so.4.12.2)
 
 FetchContent_Declare(
         nlohmann
@@ -34,9 +39,13 @@ target_include_directories(music-analyzer-server PUBLIC src)
 
 target_link_libraries(music-analyzer-server
         PUBLIC
-        nlohmann)
+        nlohmann
+        curl
+        wt
+        wthttp
+)
 
-target_link_libraries(music-analyzer-server PUBLIC curl wt wthttp)
+# Copy resources
 
 add_custom_command(
         TARGET music-analyzer-server PRE_BUILD
@@ -49,6 +58,22 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/resources
         ${CMAKE_BINARY_DIR}/resources)
+
+# Copy libraries to executable directory for simplicity
+
+add_custom_command(
+        TARGET music-analyzer-server PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${LIBWT_PATH}
+        ${CMAKE_BINARY_DIR})
+
+add_custom_command(
+        TARGET music-analyzer-server PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${LIBWTHTTP_PATH}
+        ${CMAKE_BINARY_DIR})
+
+# Installation
 
 ## Installs into /usr/lambda-snail/...
 set(SERVER_INSTALL_DIR "lambda-snail/music-server")
