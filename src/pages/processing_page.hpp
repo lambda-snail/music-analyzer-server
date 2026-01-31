@@ -14,30 +14,37 @@ class WFileDropWidget;
 
 namespace LambdaSnail::music
 {
-    class ProcessLog;
-    namespace services
-    {
-        class AudioFeaturesService;
-    }
+class ProcessLog;
+namespace services
+{
+class AudioFeaturesService;
+}
 
-        /**
-         * The class responsible for coordinating the processing of music files. In a larger
-         * application this should probably be split up into smaller classes, but this application
-         * is so small that it's much easier to simply have everything related to processing in
-         * here.
-         */
+/**
+ * The class responsible for coordinating the processing of music files. In a larger
+ * application this should probably be split up into smaller classes, but this application
+ * is so small that it's much easier to simply have everything related to processing in
+ * here.
+ */
 class ProcessingPage final : public Wt::WContainerWidget
 {
   public:
-            void setupYoutubeProcessing(Wt::WTemplate* t);
+    void setupYoutubeProcessing(Wt::WTemplate* t);
     void setupFileDrop(Wt::WTemplate* t);
-            void setupCsvConversion(Wt::WTemplate* t);
-            explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
+    void setupCsvConversion(Wt::WTemplate* t);
+    explicit ProcessingPage(LambdaSnail::music::services::AudioFeaturesService* audioService);
 
   private:
     Wt::WFileDropWidget* m_FileDrop{};
     Wt::WLineEdit* m_UrlInput{};
     SongView* m_FileView{};
+
+    enum struct MusicSource
+    {
+        Spotify,
+        YouTube
+    };
+    Wt::WComboBox* m_SourceSelector{};
 
     music::services::AudioFeaturesService* m_AudioService{};
 

@@ -16,6 +16,7 @@
 #include <Wt/Http/Request.h>
 #include <Wt/Http/Response.h>
 #include <Wt/WApplication.h>
+#include <Wt/WComboBox.h>
 #include <Wt/WPushButton.h>
 #include <cerrno>
 #include <cstdio>
@@ -29,7 +30,13 @@ void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t
     m_UrlInput = t->bindNew<Wt::WLineEdit>("yt-input");
     m_UrlInput->addStyleClass("w-50");
 
-    auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Get from YouTube");
+    m_SourceSelector = t->bindNew<Wt::WComboBox>("music-source-dropdown");
+    m_SourceSelector->addStyleClass("w-25");
+    m_SourceSelector->addItem("Spotify");
+    m_SourceSelector->addItem("YouTube");
+    m_SourceSelector->setCurrentIndex(static_cast<size_t>(MusicSource::Spotify));
+
+    auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Analyze");
     button->setStyleClass("btn");
     button->addStyleClass("btn-primary");
 
@@ -130,6 +137,7 @@ LambdaSnail::music::ProcessingPage::addNewLog(std::string const& name, Wt::WAppl
 
     return nullptr;
 }
+
 void LambdaSnail::music::ProcessingPage::processYouTubeId(
     std::string const& videoId, ProcessLog* logger)
 {
