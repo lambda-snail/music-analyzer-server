@@ -67,13 +67,13 @@ void LambdaSnail::music::ProcessLog::showError()
     bindString("error-display", "block");
 }
 
-void LambdaSnail::music::ProcessLog::setSuccessState()
+void LambdaSnail::music::ProcessLog::setSuccessState(std::string_view const& message)
 {
-    m_App->log("notice") << "Analysis complete!";
+    m_App->log("notice") << message.data();
 
     Wt::WApplication::UpdateLock uiLock(m_App);
     if (uiLock) {
-        m_Message->setText("Analysis complete!");
+        m_Message->setText(message.data());
         showSuccess();
         m_App->triggerUpdate();
     }

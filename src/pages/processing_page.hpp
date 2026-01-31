@@ -37,7 +37,7 @@ class ProcessingPage final : public Wt::WContainerWidget
   private:
     Wt::WFileDropWidget* m_FileDrop{};
     Wt::WLineEdit* m_UrlInput{};
-    SongView* m_FileView{};
+    SongView* m_SongView{};
 
     enum struct MusicSource
     {
@@ -55,6 +55,8 @@ class ProcessingPage final : public Wt::WContainerWidget
     ProcessLog* addNewLog(std::string const& name, Wt::WApplication* app);
 
     void processYouTubeId(std::string const& videoId, ProcessLog* logger);
+    void processSpotifyId(std::string const& spotifyId, ProcessLog* logger);
+
     void processAudioFile(std::filesystem::path const& filePath, ProcessLog* log);
     [[nodiscard]] std::expected<std::string, std::string>
     executeShellCommand(std::string const& command) const;

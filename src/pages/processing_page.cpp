@@ -41,18 +41,25 @@ void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t
     button->addStyleClass("btn-primary");
 
     button->clicked().connect([this]() {
-        auto const& videoId = m_UrlInput->valueText().toUTF8();
-        if (videoId.empty()) {
+        auto const& songInput = m_UrlInput->valueText().toUTF8();
+        if (songInput.empty()) {
             return;
         }
 
-        auto* logger = addNewLog(videoId, m_App);
-        std::thread([this, logger, videoId]() { processYouTubeId(videoId, logger); }).detach();
+        auto* logger = addNewLog(songInput, m_App);
+        if (static_cast<int32_t>(MusicSource::Spotify) ==  m_SourceSelector->currentIndex())
+        {
+            std::thread([this, logger, songInput]() { processSpotifyId(songInput, logger); }).detach();
+        }
+        else
+        {
+            std::thread([this, logger, songInput]() { processYouTubeId(songInput, logger); }).detach();
+        }
     });
 }
 void LambdaSnail::music::ProcessingPage::setupFileDrop(Wt::WTemplate* t)
 {
-    m_FileView = t->bindNew<SongView>("file-list");
+    m_SongView = t->bindNew<SongView>("file-list");
 
     m_FileDrop = t->bindNew<Wt::WFileDropWidget>("file-drop");
     m_FileDrop->addNew<Wt::WText>("Drop Files Here");
@@ -97,7 +104,7 @@ void LambdaSnail::music::ProcessingPage::setupCsvConversion(Wt::WTemplate* t)
 {
     m_DataFile = std::make_shared<application::LambdaResource>(
         [this](Wt::Http::Request const& request, Wt::Http::Response& response) {
-            m_FileView->getRows([&response](int32_t columnCount, Wt::WTableRow* r) {
+            m_SongView->getRows([&response](int32_t columnCount, Wt::WTableRow* r) {
                 for (int32_t c = 0; c < columnCount; ++c) {
                     if (auto const* text = dynamic_cast<Wt::WText*>(r->elementAt(c)->widget(0))) {
                         response.out() << text->text() << (c != columnCount - 1 ? "," : "\n");
@@ -213,6 +220,39 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
         logger->setErrorState(processResult.error());
     }
 }
+void LambdaSnail::music::ProcessingPage::processSpotifyId(
+    std::string const& spotifyId, ProcessLog* logger)
+{
+    logger->updateMessage("Performing analysis, please wait ...");
+
+    // TODO: Support multiple ids
+    // TODO: Allow paste of entire Spotify url
+    // TODO: Validation
+    std::vector<std::unique_ptr<AudioInformation>> songs {};
+    auto const analysis = m_AudioService->getSpotiyAnalysisResults(spotifyId, songs, m_App);
+
+    if (not analysis)
+    {
+        logger->setErrorState("An error occurred while processing");
+        return;
+    }
+
+    if (songs.empty())
+    {
+        logger->setSuccessState("Spotify id does not have song data stored. Please use YouTube instead.");
+        return;
+    }
+
+    Wt::WApplication::UpdateLock uiLock(m_App);
+    if (uiLock) {
+        for (auto& song : songs) {
+            m_SongView->addSong(std::move(song));
+        }
+
+        logger->setSuccessState();
+        m_App->triggerUpdate();
+    }
+}
 
 void LambdaSnail::music::ProcessingPage::processAudioFile(
     std::filesystem::path const& filePath, ProcessLog* log)
@@ -252,7 +292,7 @@ void LambdaSnail::music::ProcessingPage::processAudioFile(
 
         Wt::WApplication::UpdateLock uiLock(m_App);
         if (uiLock) {
-            m_FileView->addSong(std::move(songInfo));
+            m_SongView->addSong(std::move(songInfo));
             m_App->triggerUpdate();
         }
     }

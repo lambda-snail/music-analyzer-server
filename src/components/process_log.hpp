@@ -28,7 +28,7 @@ class ProcessLog final : public Wt::WTemplate
     void showSuccess();
     void showError();
 
-    void setSuccessState();
+    void setSuccessState(std::string_view const& message = "Analysis complete!");
     void setErrorState(std::string const& error);
 
   private:

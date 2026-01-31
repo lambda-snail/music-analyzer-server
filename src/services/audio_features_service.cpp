@@ -14,7 +14,10 @@ LambdaSnail::music::services::AudioFeaturesService::AudioFeaturesService()
     headers       = curl_slist_append(headers, "Accept: application/json");
     headers       = curl_slist_append(headers, "Content-Type: multipart/form-data");
 
-    m_Headers = HeaderPointer(headers);
+    m_MultiPartHeaders = HeaderPointer(headers);
+
+    headers = curl_slist_append(nullptr, "Accept: application/json");
+    m_OnlyJsonHeaders = HeaderPointer(headers);
 
     // Disables verification of SSL cert - dangerous but may simplify during development
     //curl_easy_setopt(m_Curl.get(), CURLOPT_SSL_VERIFYPEER, 0);
@@ -36,7 +39,7 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
     curl_easy_setopt(m_Curl.get(), CURLOPT_MIMEPOST, multipart);
 
     curl_easy_setopt(m_Curl.get(), CURLOPT_URL, s_Url);
-    curl_easy_setopt(m_Curl.get(), CURLOPT_HTTPHEADER, m_Headers.get());
+    curl_easy_setopt(m_Curl.get(), CURLOPT_HTTPHEADER, m_MultiPartHeaders.get());
 
     std::string response;
     curl_easy_setopt(m_Curl.get(),
@@ -86,6 +89,115 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
     app->log("error") << curl_easy_strerror(code);
 
     return std::unexpected( std::format("Received error code: {}", static_cast<size_t>(code)) );
+}
+
+std::expected<int64_t, std::string> LambdaSnail::music::services::AudioFeaturesService::get(
+    std::string_view const& url, std::string& out_buffer, Wt::WApplication* app) const
+{
+    if(not m_Curl) {
+        return std::unexpected("CURL client has not been initialized yet.");
+    }
+
+    curl_easy_setopt(m_Curl.get(), CURLOPT_CUSTOMREQUEST, "GET");
+    curl_easy_setopt(m_Curl.get(), CURLOPT_URL, url.data());
+    curl_easy_setopt(m_Curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(m_Curl.get(), CURLOPT_DEFAULT_PROTOCOL, "https");
+
+    curl_easy_setopt(m_Curl.get(), CURLOPT_HTTPHEADER, m_OnlyJsonHeaders.get());
+
+    curl_easy_setopt(m_Curl.get(),
+                     CURLOPT_WRITEFUNCTION,
+                     LambdaSnail::music::services::AudioFeaturesService::writeToBuffer);
+    curl_easy_setopt(m_Curl.get(), CURLOPT_WRITEDATA, &out_buffer);
+
+    CURLcode code = curl_easy_perform(m_Curl.get());
+
+    if (code == CURLcode::CURLE_OK) {
+        int64_t httpCode;
+        curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
+
+        app->log("notice") << "HTTP status code is " << httpCode;
+        return httpCode;
+    }
+
+    return std::unexpected(std::format("Curl indicated error: CURLcode::{}", static_cast<uint32_t>(code)));
+}
+
+std::expected<uint32_t, std::string>
+LambdaSnail::music::services::AudioFeaturesService::getSpotiyAnalysisResults(
+    std::string_view const& spotifyId,
+    std::vector<std::unique_ptr<AudioInformation>>& songs,
+    Wt::WApplication* app) const
+{
+    std::string response{};
+    auto result = get(std::format("https://api.reccobeats.com/v1/audio-features?ids={}", spotifyId), response, app);
+    return result
+        .and_then([&songs, &spotifyId, &response, this, app](int64_t httpStatusCode)
+        {
+            if (httpStatusCode < 200 or httpStatusCode >= 300)
+            {
+                return std::expected<uint32_t, std::string>(
+                    std::unexpect, std::format("Response does not indicate success: {}", httpStatusCode));
+            }
+
+            auto data = nlohmann::json::parse(response);
+            auto const contentArray = data["content"];
+            for (auto const& obj : contentArray)
+            {
+                auto song = std::make_unique<AudioInformation>();
+                song->name = spotifyId; // TODO: Won't work if we have several ids
+
+                song->data.acousticness     = obj["acousticness"].get<double>();
+                song->data.danceability     = obj["danceability"].get<double>();
+                song->data.energy           = obj["energy"].get<double>();
+                song->data.instrumentalness = obj["instrumentalness"].get<double>();
+                song->data.liveness         = obj["liveness"].get<double>();
+                song->data.loudness         = obj["loudness"].get<double>();
+                song->data.speechiness      = obj["speechiness"].get<double>();
+                song->data.tempo            = obj["tempo"].get<double>();
+                song->data.valence          = obj["valence"].get<double>();
+
+                std::string resp{};
+                auto songNameResult = get(
+                    std::format("https://api.reccobeats.com/v1/track/{}", obj["id"].get<std::string>()),
+                    resp, app);
+                if (songNameResult.has_value() and songNameResult.value() >= 200 and songNameResult.value() < 300)
+                {
+                    auto trackInfo = nlohmann::json::parse(resp);
+                    song->name = trackInfo["trackTitle"].get<std::string>();
+                }
+
+                songs.push_back(std::move(song));
+            }
+
+            return std::expected<uint32_t, std::string>(songs.size());
+        }).or_else([](std::string const& error)
+        {
+            return std::expected<uint32_t, std::string>(std::unexpect, error);
+        });
+
+
+        // int64_t httpCode;
+        // curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
+        //
+        // app->log("notice") << "HTTP status code is " << httpCode;
+        //
+        // auto obj = nlohmann::json::parse(response);
+        //
+        // if (httpCode >= 200 and httpCode < 300) {
+        //     return AudioAnalysis{
+        //         .acousticness     = obj["acousticness"].get<double>(),
+        //         .danceability     = obj["danceability"].get<double>(),
+        //         .energy           = obj["energy"].get<double>(),
+        //         .instrumentalness = obj["instrumentalness"].get<double>(),
+        //         .liveness         = obj["liveness"].get<double>(),
+        //         .loudness         = obj["loudness"].get<double>(),
+        //         .speechiness      = obj["speechiness"].get<double>(),
+        //         .tempo            = obj["tempo"].get<double>(),
+        //         .valence          = obj["valence"].get<double>()
+        //     };
+        // }
+
 }
 
 size_t LambdaSnail::music::services::AudioFeaturesService::writeToBuffer(
