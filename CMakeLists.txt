@@ -12,6 +12,11 @@ set(LIBWTDBO_PATH /usr/local/lib/libwtdbo.so.4.12.2)
 set(LIBWTDBOSQLITE_PATH /usr/local/lib/libwtdbosqlite3.so.4.12.2)
 set(LIBWTHTTP_PATH /usr/local/lib/libwthttp.so.4.12.2)
 
+find_package(Boost
+        REQUIRED
+        url
+)
+
 FetchContent_Declare(
         nlohmann
         GIT_REPOSITORY https://github.com/nlohmann/json.git
@@ -41,6 +46,7 @@ target_link_libraries(music-analyzer-server
         PUBLIC
         nlohmann
         curl
+        boost_url
         wt
         wthttp
 )

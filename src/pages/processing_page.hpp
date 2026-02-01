@@ -54,8 +54,8 @@ class ProcessingPage final : public Wt::WContainerWidget
 
     ProcessLog* addNewLog(std::string const& name, Wt::WApplication* app);
 
-    void processYouTubeId(std::string const& videoId, ProcessLog* logger);
-    void processSpotifyId(std::string const& spotifyId, ProcessLog* logger);
+    void processYouTubeId(std::string const& urlOrId, ProcessLog* logger);
+    void processSpotifyId(std::string const& urlOrId, ProcessLog* logger);
 
     void processAudioFile(std::filesystem::path const& filePath, ProcessLog* log);
     [[nodiscard]] std::expected<std::string, std::string>

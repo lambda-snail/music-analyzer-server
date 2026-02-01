@@ -146,9 +146,16 @@ LambdaSnail::music::ProcessingPage::addNewLog(std::string const& name, Wt::WAppl
 }
 
 void LambdaSnail::music::ProcessingPage::processYouTubeId(
-    std::string const& videoId, ProcessLog* logger)
+    std::string const& urlOrId, ProcessLog* logger)
 {
     logger->updateMessage("Downloading from YouTube, this may take a while ...");
+
+    std::string const videoId = m_AudioService->getYouTubeVideoId(urlOrId);
+    if (videoId.empty())
+    {
+        logger->setErrorState("Unable to find video id or url.");
+        return;
+    }
 
     std::string cookieFileArgument{};
     if (LambdaSnail::services::CookieInfo::hasCookieFile()) {
@@ -221,9 +228,16 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
     }
 }
 void LambdaSnail::music::ProcessingPage::processSpotifyId(
-    std::string const& spotifyId, ProcessLog* logger)
+    std::string const& urlOrId, ProcessLog* logger)
 {
     logger->updateMessage("Performing analysis, please wait ...");
+
+    std::string const spotifyId = m_AudioService->getSpotifyId(urlOrId);
+    if (spotifyId.empty())
+    {
+        logger->setErrorState("Unable to find spotify id.");
+        return;
+    }
 
     // TODO: Support multiple ids
     // TODO: Allow paste of entire Spotify url
