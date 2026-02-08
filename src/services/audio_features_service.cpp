@@ -87,9 +87,9 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
         {
             response.clear();
 
-            curl_header *t;
-            curl_easy_header(m_Curl.get(), "Retry-After", 0, CURLH_HEADER, -1, &t);
-            auto sleep = std::stoi(t->value);
+            curl_header* h;
+            curl_easy_header(m_Curl.get(), "Retry-After", 0, CURLH_HEADER, -1, &h);
+            auto sleep = std::stoi(h->value);
             if (sleep < MaxSleepTimeSeconds) {
                 app->log("notice") << "Rate limited - sleeping for " << sleep << " seconds.";
                 std::this_thread::sleep_for( std::chrono::seconds(sleep) );
