@@ -37,6 +37,7 @@ add_executable(music-analyzer-server
         src/services/cookie_info.cpp            src/services/cookie_info.hpp
         src/application/lambda_resource.cpp     src/application/lambda_resource.hpp
         src/models/audio.hpp
+        src/services/load_balancer.cpp          src/services/load_balancer.hpp
 )
 
 #target_compile_options(music-analyzer-server PUBLIC "-fsanitize=undefined")

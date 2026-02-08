@@ -11,6 +11,7 @@ char const* LambdaSnail::music::services::AudioFeaturesService::s_Url =
     "https://api.reccobeats.com/v1/analysis/audio-features";
 
 LambdaSnail::music::services::AudioFeaturesService::AudioFeaturesService()
+    : m_LoadBalancer(5, 1, std::chrono::milliseconds(1500))
 {
     auto* headers = curl_slist_append(nullptr, "Expect:");
     headers       = curl_slist_append(headers, "Accept: application/json");
@@ -51,50 +52,79 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
                      LambdaSnail::music::services::AudioFeaturesService::writeToBuffer);
     curl_easy_setopt(m_Curl.get(), CURLOPT_WRITEDATA, &response);
 
-    //std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
-    CURLcode code = curl_easy_perform(m_Curl.get());
-    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // TODO: Add rate limitation
+    // TODO: Ensure errors are propagated properly when using spotify as well
 
-    if (code == CURLcode::CURLE_OK) {
-        int64_t httpCode;
-        curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
+    bool isAccepted = false;
+    do
+    {
+        auto [a, waitHint] = m_LoadBalancer.isAllowed();
+        isAccepted = a;
+        if (not isAccepted and waitHint.count() > 0)
+        {
+            std::this_thread::sleep_for(waitHint);
+        }
+    }
+    while (not isAccepted);
 
-        app->log("notice") << "HTTP status code is " << httpCode;
+    int retries = 10;
+    int64_t httpCode;
 
-        // An http call can succeed in more ways than 2xx, but in this case it's all we're
-        // interested in.
-        if (httpCode >= 200 and httpCode < 300) {
-            auto obj = nlohmann::json::parse(response);
-            return AudioAnalysis{
-                .acousticness     = obj["acousticness"].get<double>(),
-                .danceability     = obj["danceability"].get<double>(),
-                .energy           = obj["energy"].get<double>(),
-                .instrumentalness = obj["instrumentalness"].get<double>(),
-                .liveness         = obj["liveness"].get<double>(),
-                .loudness         = obj["loudness"].get<double>(),
-                .speechiness      = obj["speechiness"].get<double>(),
-                .tempo            = obj["tempo"].get<double>(),
-                .valence          = obj["valence"].get<double>()};
+    do
+    {
+        CURLcode code = curl_easy_perform(m_Curl.get());
+        if (code != CURLcode::CURLE_OK)
+        {
+            app->log("error") << "Error when sending request to the analysis server: "
+                                  << static_cast<size_t>(code);
+            app->log("error") << curl_easy_strerror(code);
+            return std::unexpected(std::format("Received error code: {}", static_cast<size_t>(code)));
         }
 
-        // Example error result
-        // {
-        //   "timestamp" : "2026-02-08T14:14:23.943+00:00",
-        //   "error" : "Too many request, retry after 5 seconds",
-        //   "path" : "uri=/v1/analysis/audio-features",
-        //   "status" : 4291
-        // }
+        curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
+        app->log("notice") << "HTTP status code is " << httpCode;
+        if (httpCode == 429)
+        {
+            response.clear();
 
-        app->log("error") << response;
-        auto error = nlohmann::json::parse(response);
-        return std::unexpected(error["error"].get<std::string>());
+            curl_header *t;
+            curl_easy_header(m_Curl.get(), "Retry-After", 0, CURLH_HEADER, -1, &t);
+            auto sleep = std::stoi(t->value);
+            if (sleep < MaxSleepTimeSeconds) {
+                app->log("notice") << "Rate limited - sleeping for " << sleep << " seconds.";
+                std::this_thread::sleep_for( std::chrono::seconds(sleep) );
+            }
+        }
+    }
+    while (httpCode == 429 and --retries > 0);
+
+    // An http call can succeed in more ways than 2xx, but in this case it's all we're
+    // interested in.
+    if (httpCode >= 200 and httpCode < 300) {
+        auto obj = nlohmann::json::parse(response);
+        return AudioAnalysis{
+            .acousticness     = obj["acousticness"].get<double>(),
+            .danceability     = obj["danceability"].get<double>(),
+            .energy           = obj["energy"].get<double>(),
+            .instrumentalness = obj["instrumentalness"].get<double>(),
+            .liveness         = obj["liveness"].get<double>(),
+            .loudness         = obj["loudness"].get<double>(),
+            .speechiness      = obj["speechiness"].get<double>(),
+            .tempo            = obj["tempo"].get<double>(),
+            .valence          = obj["valence"].get<double>()};
     }
 
-    app->log("error") << "Error when sending request to the analysis server: "
-                      << static_cast<size_t>(code);
-    app->log("error") << curl_easy_strerror(code);
+    // Example error result
+    // {
+    //   "timestamp" : "2026-02-08T14:14:23.943+00:00",
+    //   "error" : "Too many request, retry after 5 seconds",
+    //   "path" : "uri=/v1/analysis/audio-features",
+    //   "status" : 4291
+    // }
 
-    return std::unexpected(std::format("Received error code: {}", static_cast<size_t>(code)));
+    app->log("error") << response;
+    auto error = nlohmann::json::parse(response);
+    return std::unexpected(error["error"].get<std::string>());
 }
 
 std::expected<int64_t, std::string> LambdaSnail::music::services::AudioFeaturesService::get(
