@@ -8,6 +8,7 @@
 #include <Wt/WApplication.h>
 #include <memory>
 #include <string>
+#include <mutex>
 
 namespace LambdaSnail::music::services
 {
@@ -15,11 +16,11 @@ class AudioFeaturesService
 {
   public:
     explicit AudioFeaturesService();
-    [[nodiscard]] std::expected<AudioAnalysis, std::string> getFileAnalysisResults(std::string const& buffer, Wt::WApplication* app) const;
+    [[nodiscard]] std::expected<AudioAnalysis, std::string> getFileAnalysisResults(std::string const& buffer, Wt::WApplication* app);
     [[nodiscard]] std::expected<uint32_t, std::string> getSpotiyAnalysisResults(
         std::string_view const& spotifyId,
         std::vector<std::unique_ptr<AudioInformation>>& songs,
-        Wt::WApplication* app) const;
+        Wt::WApplication* app);
 
     [[nodiscard]] std::string getYouTubeVideoId(std::string_view const& url) const;
     [[nodiscard]] std::string getSpotifyId(std::string_view const& url) const;
@@ -34,6 +35,8 @@ class AudioFeaturesService
     HeaderPointer m_MultiPartHeaders{};
     HeaderPointer m_OnlyJsonHeaders{};
     static char const* s_Url;
+
+    std::mutex m_Lock{};
 
     [[nodiscard]] std::expected<int64_t, std::string>
     get(std::string_view const& url, std::string& out_buffer, Wt::WApplication* app) const;

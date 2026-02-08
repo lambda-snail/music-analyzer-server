@@ -203,26 +203,53 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
 
                     int i = 0;
                     std::vector<AudioAnalysis> songParts{};
-                    std::ranges::for_each(std::filesystem::directory_iterator{outFolder},
-                        [this, &i, logger, &songParts, numFiles](std::filesystem::directory_entry const& entry)
-                        {
-                            logger->updateMessage(std::format("Processing: {}%", 100 * ++i / numFiles ));
-                            auto const path = entry.path();
+                    auto it = std::filesystem::directory_iterator{outFolder};
+                    for (std::filesystem::directory_entry const& entry : it)
+                    {
+                        logger->updateMessage(std::format("Processing: {}%", 100 * ++i / numFiles ));
+                        auto const path = entry.path();
 
-                            if (path.has_extension() and path.extension().compare("mp3") == 0)
-                            //if (entry.path().has_extension() and entry.path().extension().compare("mp3") == 0)
-                            {
-                                auto analysis = processAudioFile(path);
-                                if (analysis)
-                                {
-                                    songParts.push_back(analysis.value());
-                                }
-                                else
-                                {
-                                    return analysis;
-                                }
-                            }
-                        });
+                        auto result = processAudioFile(path);
+                        if (result.has_value())
+                        {
+                            songParts.push_back(result.value());
+                        }
+                        else
+                        {
+                            return std::expected<std::pair<AudioAnalysis, std::string>, std::string>(std::unexpect, result.error());
+                        }
+
+                        // processAudioFile(path).and_then([&songParts](AudioAnalysis a) {
+                        //     songParts.push_back(a);
+                        //     return std::expected<bool, std::string>();
+                        // });
+                    }
+
+                    // std::ranges::for_each(std::filesystem::directory_iterator{outFolder},
+                    //     [this, &i, logger, &songParts, numFiles](std::filesystem::directory_entry const& entry)
+                    //     {
+                    //         logger->updateMessage(std::format("Processing: {}%", 100 * ++i / numFiles ));
+                    //         auto const path = entry.path();
+                    //
+                    //         //if (path.has_extension() and path.extension().compare("mp3") == 0)
+                    //         //if (entry.path().has_extension() and entry.path().extension().compare("mp3") == 0)
+                    //         //{
+                    //         processAudioFile(path).and_then([&songParts](AudioAnalysis a) {
+                    //             songParts.push_back(a);
+                    //             return std::expected<bool, std::string>();
+                    //
+                    //             // TODO: Handle errors
+                    //         });
+                    //             // if (analysis.has_value())
+                    //             // {
+                    //             //     songParts.push_back(analysis.value());
+                    //             // }
+                    //             // else
+                    //             // {
+                    //             //     return analysis;
+                    //             // }
+                    //         //}
+                    //     });
 
                     auto sum = std::accumulate(songParts.begin(), songParts.end(), AudioAnalysis{},
                         [](AudioAnalysis a, AudioAnalysis const& b) {

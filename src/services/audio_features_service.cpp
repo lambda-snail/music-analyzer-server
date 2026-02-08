@@ -1,6 +1,7 @@
 #include "audio_features_service.hpp"
 
 #include <Wt/WApplication.h>
+#include <bits/this_thread_sleep.h>
 #include <boost/url.hpp>
 #include <format>
 #include <iostream>
@@ -26,8 +27,10 @@ LambdaSnail::music::services::AudioFeaturesService::AudioFeaturesService()
 
 std::expected<LambdaSnail::music::AudioAnalysis, std::string>
 LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
-    std::string const& buffer, Wt::WApplication* app) const
+    std::string const& buffer, Wt::WApplication* app)
 {
+    std::scoped_lock<std::mutex> lock(m_Lock);
+
     curl_mime* multipart = curl_mime_init(m_Curl.get());
     curl_mimepart* part  = curl_mime_addpart(multipart);
 
@@ -48,7 +51,9 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
                      LambdaSnail::music::services::AudioFeaturesService::writeToBuffer);
     curl_easy_setopt(m_Curl.get(), CURLOPT_WRITEDATA, &response);
 
+    //std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
     CURLcode code = curl_easy_perform(m_Curl.get());
+    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     if (code == CURLcode::CURLE_OK) {
         int64_t httpCode;
@@ -56,11 +61,10 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
 
         app->log("notice") << "HTTP status code is " << httpCode;
 
-        auto obj = nlohmann::json::parse(response);
-
         // An http call can succeed in more ways than 2xx, but in this case it's all we're
         // interested in.
         if (httpCode >= 200 and httpCode < 300) {
+            auto obj = nlohmann::json::parse(response);
             return AudioAnalysis{
                 .acousticness     = obj["acousticness"].get<double>(),
                 .danceability     = obj["danceability"].get<double>(),
@@ -75,16 +79,15 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
 
         // Example error result
         // {
-        //     "type" : "about:blank",
-        //     "title" : "Payload Too Large",
-        //     "status" : 413,
-        //     "detail" : "Maximum upload size exceeded",
-        //     "instance" : "/v1/analysis/audio-features"
-        //   }
+        //   "timestamp" : "2026-02-08T14:14:23.943+00:00",
+        //   "error" : "Too many request, retry after 5 seconds",
+        //   "path" : "uri=/v1/analysis/audio-features",
+        //   "status" : 4291
+        // }
 
         app->log("error") << response;
-        return std::unexpected(std::format(
-            "{} - {}", obj["title"].get<std::string>(), obj["detail"].get<std::string>()));
+        auto error = nlohmann::json::parse(response);
+        return std::unexpected(error["error"].get<std::string>());
     }
 
     app->log("error") << "Error when sending request to the analysis server: "
@@ -115,24 +118,27 @@ std::expected<int64_t, std::string> LambdaSnail::music::services::AudioFeaturesS
 
     CURLcode code = curl_easy_perform(m_Curl.get());
 
-    if (code == CURLcode::CURLE_OK) {
-        int64_t httpCode;
-        curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
-
-        app->log("notice") << "HTTP status code is " << httpCode;
-        return httpCode;
+    if (code != CURLcode::CURLE_OK)
+    {
+        return std::unexpected(
+            std::format("Curl indicated error: CURLcode::{}", static_cast<uint32_t>(code)));
     }
 
-    return std::unexpected(
-        std::format("Curl indicated error: CURLcode::{}", static_cast<uint32_t>(code)));
+    int64_t httpCode;
+    curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
+
+    app->log("notice") << "HTTP status code is " << httpCode;
+    return httpCode;
 }
 
 std::expected<uint32_t, std::string>
 LambdaSnail::music::services::AudioFeaturesService::getSpotiyAnalysisResults(
     std::string_view const& spotifyId,
     std::vector<std::unique_ptr<AudioInformation>>& songs,
-    Wt::WApplication* app) const
+    Wt::WApplication* app)
 {
+    std::scoped_lock lock(m_Lock);
+
     std::string response{};
     auto result = get(std::format("https://api.reccobeats.com/v1/audio-features?ids={}", spotifyId),
                       response,
