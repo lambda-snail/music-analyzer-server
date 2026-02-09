@@ -188,10 +188,12 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
                             videoId));
                 })
                 .and_then(
-                    [this, logger, &outFolder](std::string fileName) {
+                    [this, logger, &outFolder](std::filesystem::path const&& fileName) {
                         // Files are in /tmp/music/[videoid]/outputXYZ.mp3
 
-                        logger->updateMessage(std::format("Found name of song: {}", fileName ));
+                        std::string const name = fileName.stem();
+                        logger->updateMessage(std::format("Found name of song: {}", name ));
+                        logger->updateName(name);
 
                         // need to maintain file count so we can show progress in the UI
                         size_t numFiles = 0;
@@ -215,7 +217,7 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
                             }
                             else
                             {
-                                return std::expected<std::pair<AudioAnalysis, std::string>, std::string>(std::unexpect, result.error());
+                                return std::expected<std::pair<AudioAnalysis, std::filesystem::path>, std::string>(std::unexpect, result.error());
                             }
                         }
 
@@ -244,7 +246,7 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
                         sum.tempo /= static_cast<double>(songParts.size());
                         sum.valence /= static_cast<double>(songParts.size());
 
-                        return std::expected<std::pair<AudioAnalysis, std::string>, std::string>{ std::make_pair<AudioAnalysis, std::string> (std::move(sum), std::move(fileName)) };
+                        return std::expected<std::pair<AudioAnalysis, std::filesystem::path>, std::string>{ std::make_pair<AudioAnalysis, std::string> (std::move(sum), std::move(fileName)) };
                     });
 
         if (not processResult.has_value()) {
@@ -254,14 +256,11 @@ void LambdaSnail::music::ProcessingPage::processYouTubeId(
 
         // TODO: Verify aggregation calculations are correct
 
-        std::pair<AudioAnalysis, std::string> const& result = processResult.value();
+        std::pair<AudioAnalysis, std::filesystem::path> const& result = processResult.value();
 
         auto songInfo = std::make_unique<music::AudioInformation>();
         songInfo->data = result.first;
-
-        // A bit inefficient but gets the job done
-        auto const songPath = std::filesystem::path(result.second);
-        songInfo->name = songPath.stem();
+        songInfo->name = result.second.stem();
 
         Wt::WApplication::UpdateLock uiLock(m_App);
         if (uiLock) {
@@ -369,12 +368,18 @@ LambdaSnail::music::ProcessingPage::executeShellCommand(std::string const& comma
         }
     };
 
-    try {
+
+
+    try
+    {
         std::unique_ptr<FILE, decltype(deleter)> pipe(popen(command.c_str(), "r"), deleter);
-        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr) {
+        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr)
+        {
             result.append(buffer.data());
         }
-    } catch (...) {
+    }
+    catch (...)
+    {
         return std::unexpected("An error occurred while executing a command");
     }
 
