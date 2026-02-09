@@ -93,23 +93,11 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
     // TODO: Add rate limitation
     // TODO: Ensure errors are propagated properly when using spotify as well
 
-    bool isAccepted = m_LoadBalancer.tryGetTokenBlocking(16, std::chrono::seconds(12));
+    bool isAccepted = m_LoadBalancer.tryGetTokenBlocking(MaxTokenRetryCount, std::chrono::seconds(12));
     if (not isAccepted)
     {
         return std::unexpected<std::string>("The connection has timed out, please try again in a little while.");
     }
-
-    // bool isAccepted = false;
-    // do
-    // {
-    //     auto [a, waitHint] = m_LoadBalancer.isAllowed();
-    //     isAccepted = a;
-    //     if (not isAccepted and waitHint.count() > 0)
-    //     {
-    //         std::this_thread::sleep_for(waitHint);
-    //     }
-    // }
-    // while (not isAccepted);
 
     return doRequest(m_Curl.get(), app, response).and_then(
         [&response, app](int64_t httpCode) -> std::expected<AudioAnalysis, std::string>
@@ -145,10 +133,16 @@ LambdaSnail::music::services::AudioFeaturesService::getFileAnalysisResults(
 }
 
 std::expected<int64_t, std::string> LambdaSnail::music::services::AudioFeaturesService::get(
-    std::string_view const& url, std::string& out_buffer, Wt::WApplication* app) const
+    std::string_view const& url, std::string& out_buffer, Wt::WApplication* app)
 {
     if (not m_Curl) {
         return std::unexpected("CURL client has not been initialized yet.");
+    }
+
+    bool isAccepted = m_LoadBalancer.tryGetTokenBlocking(MaxTokenRetryCount, std::chrono::seconds(MaxSleepTimeSeconds));
+    if (not isAccepted)
+    {
+        return std::unexpected<std::string>("The connection has timed out, please try again in a little while.");
     }
 
     curl_easy_setopt(m_Curl.get(), CURLOPT_CUSTOMREQUEST, "GET");
@@ -163,19 +157,7 @@ std::expected<int64_t, std::string> LambdaSnail::music::services::AudioFeaturesS
                      LambdaSnail::music::services::AudioFeaturesService::writeToBuffer);
     curl_easy_setopt(m_Curl.get(), CURLOPT_WRITEDATA, &out_buffer);
 
-    CURLcode code = curl_easy_perform(m_Curl.get());
-
-    if (code != CURLcode::CURLE_OK)
-    {
-        return std::unexpected(
-            std::format("Curl indicated error: CURLcode::{}", static_cast<uint32_t>(code)));
-    }
-
-    int64_t httpCode;
-    curl_easy_getinfo(m_Curl.get(), CURLINFO_RESPONSE_CODE, &httpCode);
-
-    app->log("notice") << "HTTP status code is " << httpCode;
-    return httpCode;
+    return doRequest(m_Curl.get(), app, out_buffer);
 }
 
 std::expected<uint32_t, std::string>

@@ -42,13 +42,14 @@ class AudioFeaturesService
     std::mutex m_Lock{};
 
     [[nodiscard]] std::expected<int64_t, std::string>
-    get(std::string_view const& url, std::string& out_buffer, Wt::WApplication* app) const;
-    static size_t writeToBuffer(void* buffer, size_t size, size_t count, void* user);
+    get(std::string_view const& url, std::string& out_buffer, Wt::WApplication* app);
+    [[nodiscard]] static size_t writeToBuffer(void* buffer, size_t size, size_t count, void* user);
 
     [[nodiscard]] std::expected<int64_t, std::string>
     doRequest(CURL* curl, Wt::WApplication* app, std::string& outResponse);
 
     static constexpr int MaxSleepTimeSeconds = 30;
+    static constexpr int MaxTokenRetryCount = 16;
 };
 
 } // namespace LambdaSnail::music::services

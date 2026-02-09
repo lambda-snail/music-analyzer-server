@@ -66,5 +66,7 @@ class ProcessingPage final : public Wt::WContainerWidget
 
     // Wt::Signal<std::string, ProcessLog*> signal_MessageChanged{};
     // Wt::Signal<ProcessLog*> signal_LogAdded{};
+
+    static const std::string s_ServerGenericErrorMessage;
 };
 } // namespace LambdaSnail::music
