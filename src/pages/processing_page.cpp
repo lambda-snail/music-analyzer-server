@@ -316,7 +316,7 @@ void LambdaSnail::music::ProcessingPage::processSpotifyId(
     // TODO: Allow paste of entire Spotify url
     // TODO: Validation
     std::vector<std::unique_ptr<AudioInformation>> songs {};
-    auto const analysis = m_AudioService->getSpotiyAnalysisResults(spotifyId, songs, m_App);
+    auto const analysis = m_AudioService->getSpotifyAnalysisResults(spotifyId, songs, m_App);
 
     if (not analysis)
     {

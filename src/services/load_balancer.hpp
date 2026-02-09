@@ -3,6 +3,7 @@
 #include <chrono>
 #include <iostream>
 #include <mutex>
+#include <thread>
 #include <variant>
 
 namespace LambdaSnail::utils
@@ -24,6 +25,29 @@ namespace LambdaSnail::utils
             m_FillSize(fillSize)
         {
             m_LastFillTime = std::chrono::steady_clock::now();
+        }
+
+        bool tryGetTokenBlocking(uint8_t retries, std::chrono::milliseconds waitTime)
+        {
+            auto retryCount {0};
+            std::chrono::milliseconds totalWaitTime {0};
+            bool isAccepted {false};
+
+            do
+            {
+                auto [a, waitHint] = this->isAllowed();
+                isAccepted = a;
+                ++retryCount;
+
+                if (not isAccepted and waitHint.count() > 0)
+                {
+                    totalWaitTime += waitHint;
+                    std::this_thread::sleep_for(waitHint);
+                }
+            }
+            while (not isAccepted and totalWaitTime < waitTime);
+
+            return isAccepted;
         }
 
         LoadBalanceCheckResult isAllowed()

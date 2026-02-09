@@ -18,7 +18,7 @@ class AudioFeaturesService
   public:
     explicit AudioFeaturesService();
     [[nodiscard]] std::expected<AudioAnalysis, std::string> getFileAnalysisResults(std::string const& buffer, Wt::WApplication* app);
-    [[nodiscard]] std::expected<uint32_t, std::string> getSpotiyAnalysisResults(
+    [[nodiscard]] std::expected<uint32_t, std::string> getSpotifyAnalysisResults(
         std::string_view const& spotifyId,
         std::vector<std::unique_ptr<AudioInformation>>& songs,
         Wt::WApplication* app);
@@ -44,6 +44,9 @@ class AudioFeaturesService
     [[nodiscard]] std::expected<int64_t, std::string>
     get(std::string_view const& url, std::string& out_buffer, Wt::WApplication* app) const;
     static size_t writeToBuffer(void* buffer, size_t size, size_t count, void* user);
+
+    [[nodiscard]] std::expected<int64_t, std::string>
+    doRequest(CURL* curl, Wt::WApplication* app, std::string& outResponse);
 
     static constexpr int MaxSleepTimeSeconds = 30;
 };
