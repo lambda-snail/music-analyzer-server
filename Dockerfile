@@ -21,11 +21,10 @@ RUN apt-get update && \
 
 # Install dependencies
 RUN apt-get update && \
-    #apt-get -y --no-install-recommends install libboost-thread${BOOST_VERSION}-dev libboost-filesystem${BOOST_VERSION}-dev libboost-program-options${BOOST_VERSION}-dev libboost-url${BOOST_VERSION}-dev python3 ffmpeg && \
-    apt-get -y --no-install-recommends install libboost-thread${BOOST_VERSION}-dev libboost-filesystem${BOOST_VERSION}-dev libboost-program-options${BOOST_VERSION}-dev libboost-url${BOOST_VERSION}-dev python3 ffmpeg && \
+    apt-get -y --no-install-recommends install libboost-thread${BOOST_VERSION} libboost-filesystem${BOOST_VERSION} libboost-program-options${BOOST_VERSION} libboost-url${BOOST_VERSION} python3 ffmpeg && \
     apt-get -y --no-install-recommends install ./music-analyzer-server-${DEB_VERSION}-Linux.deb && \
     chmod a+rx /usr/local/bin/yt-dlp && \
-# Cleanup stage to ensure minimal image \
+    # Cleanup stage to ensure minimal image \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -r /var/lib/apt/lists/* music-analyzer-server-${DEB_VERSION}-Linux.deb
