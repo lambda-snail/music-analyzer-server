@@ -2,7 +2,7 @@ include(FetchContent)
 
 cmake_minimum_required(VERSION 4.0)
 project(music-analyzer-server
-    VERSION 0.8.5
+    VERSION 0.9.0
 )
 
 set(CMAKE_CXX_STANDARD 23)
@@ -23,6 +23,7 @@ FetchContent_Declare(
         nlohmann
         GIT_REPOSITORY https://github.com/nlohmann/json.git
         GIT_TAG v3.12.0
+        GIT_SHALLOW ON
 )
 
 FetchContent_MakeAvailable(nlohmann)

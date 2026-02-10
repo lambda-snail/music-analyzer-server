@@ -1,6 +1,6 @@
 FROM ubuntu:questing
 ARG MODE="release"
-ARG DEB_VERSION="0.8.5"
+ARG DEB_VERSION="0.9.0"
 ARG BOOST_VERSION="1.88"
 ARG WT_VERSION="4.12.2"
 ARG INSTALL_DIR="/usr/lambda-snail/music-server"
