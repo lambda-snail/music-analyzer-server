@@ -55,11 +55,11 @@ void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t
         auto* logger = addNewLog(songInput, m_App);
         if (static_cast<int32_t>(MusicSource::Spotify) ==  m_SourceSelector->currentIndex())
         {
-            std::thread([this, logger, songInput]() { processSpotifyId(songInput, logger); }).detach();
+            std::thread([this, logger, songInput] { processSpotifyId(songInput, logger); }).detach();
         }
         else
         {
-            std::thread([this, logger, songInput]() { processYouTubeId(songInput, logger); }).detach();
+            std::thread([this, logger, songInput] { processYouTubeId(songInput, logger); }).detach();
         }
     });
 }

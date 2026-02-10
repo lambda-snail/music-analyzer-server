@@ -12,7 +12,9 @@ set(LIBWTDBO_PATH /usr/local/lib/libwtdbo.so.4.12.2)
 set(LIBWTDBOSQLITE_PATH /usr/local/lib/libwtdbosqlite3.so.4.12.2)
 set(LIBWTHTTP_PATH /usr/local/lib/libwthttp.so.4.12.2)
 
-find_package(Boost
+#set(Boost_USE_STATIC_LIBS 1)
+
+find_package(Boost 1.88
         REQUIRED
         url
 )
