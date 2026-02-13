@@ -28,6 +28,9 @@
 #include <syncstream>
 #include <thread>
 
+const std::string LambdaSnail::music::ProcessingPage::s_ServerGenericErrorMessage =
+    "An error occurred while processing. This usually indicates that the server is busy - please try again in a litle while.";
+
 void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t)
 {
     m_UrlInput = t->bindNew<Wt::WLineEdit>("yt-input");
@@ -36,7 +39,7 @@ void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t
     m_SourceSelector = t->bindNew<Wt::WComboBox>("music-source-dropdown");
     m_SourceSelector->addStyleClass("w-25");
     m_SourceSelector->addItem("Spotify");
-    m_SourceSelector->addItem("YouTube");
+    //m_SourceSelector->addItem("YouTube"); // TODO: Add this to re-enable yt-dlp support
     m_SourceSelector->setCurrentIndex(static_cast<size_t>(MusicSource::Spotify));
 
     auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Analyze");
@@ -52,18 +55,16 @@ void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t
         auto* logger = addNewLog(songInput, m_App);
         if (static_cast<int32_t>(MusicSource::Spotify) ==  m_SourceSelector->currentIndex())
         {
-            std::thread([this, logger, songInput]() { processSpotifyId(songInput, logger); }).detach();
+            std::thread([this, logger, songInput] { processSpotifyId(songInput, logger); }).detach();
         }
         else
         {
-            std::thread([this, logger, songInput]() { processYouTubeId(songInput, logger); }).detach();
+            std::thread([this, logger, songInput] { processYouTubeId(songInput, logger); }).detach();
         }
     });
 }
 void LambdaSnail::music::ProcessingPage::setupFileDrop(Wt::WTemplate* t)
 {
-    m_SongView = t->bindNew<SongView>("file-list");
-
     m_FileDrop = t->bindNew<Wt::WFileDropWidget>("file-drop");
     m_FileDrop->addNew<Wt::WText>("Drop Files Here");
     m_FileDrop->setToolTip(
@@ -73,8 +74,6 @@ void LambdaSnail::music::ProcessingPage::setupFileDrop(Wt::WTemplate* t)
     m_FileDrop->addStyleClass("d-flex");
     m_FileDrop->addStyleClass("justify-content-center");
     m_FileDrop->setAcceptDirectories(false);
-
-    m_LogContainer = t->bindNew<Wt::WContainerWidget>("process-log");
 
     m_FileDrop->uploaded().connect([this](Wt::WFileDropWidget::File* file) {
         // Stub to test file processing
@@ -134,7 +133,12 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
 
     setupCsvConversion(t);
 
-    setupFileDrop(t);
+    // TODO: Comment back in to re-enable file-drop support (requires yt-dlp)
+    t->bindEmpty("file-drop");
+    //setupFileDrop(t);
+
+    m_LogContainer = t->bindNew<Wt::WContainerWidget>("process-log");
+    m_SongView = t->bindNew<SongView>("file-list");
 }
 
 LambdaSnail::music::ProcessLog*
@@ -151,159 +155,149 @@ LambdaSnail::music::ProcessingPage::addNewLog(std::string const& name, Wt::WAppl
 void LambdaSnail::music::ProcessingPage::processYouTubeId(
     std::string const& urlOrId, ProcessLog* logger)
 {
-    logger->updateMessage("Downloading from YouTube, this may take a while ...");
+    try {
+        logger->updateMessage("Downloading from YouTube, this may take a while ...");
 
-    std::string const videoId = m_AudioService->getYouTubeVideoId(urlOrId);
-    if (videoId.empty())
+        std::string const videoId = m_AudioService->getYouTubeVideoId(urlOrId);
+        if (videoId.empty())
+        {
+            logger->setErrorState("Unable to find video id or url.");
+            return;
+        }
+
+        std::string cookieFileArgument{};
+        if (LambdaSnail::services::CookieInfo::hasCookieFile()) {
+            cookieFileArgument = std::format(
+                "--cookies {}", LambdaSnail::services::CookieInfo::getCookieFile().string());
+        }
+
+        std::string const outFolder = std::format("/tmp/music/{}", videoId);
+
+        auto const processResult =
+            executeShellCommand(
+                std::format("mkdir -p {}; yt-dlp -o '/tmp/music/%(title)s.%(ext)s' {} --restrict-filenames -q -t mp3 {} --exec 'ffmpeg -i {{}} -c copy -map 0 -segment_time 00:00:25 -f segment {}/output%03d.mp3'",
+                            outFolder,
+                            cookieFileArgument,
+                            videoId,
+                            outFolder))
+                .and_then(
+                    [this, &cookieFileArgument, &videoId]([[maybe_unused]] std::string const& result) {
+                        // --get-filename returns .webm even if we use '-t mp3' so hard-code the format
+                        return executeShellCommand(std::format(
+                            "yt-dlp -o '/tmp/music/%(title)s.mp3' {} --restrict-filenames  --get-filename {}",
+                            cookieFileArgument,
+                            videoId));
+                })
+                .and_then(
+                    [this, logger, &outFolder](std::filesystem::path const&& fileName) {
+                        // Files are in /tmp/music/[videoid]/outputXYZ.mp3
+
+                        std::string const name = fileName.stem();
+                        logger->updateMessage(std::format("Found name of song: {}", name ));
+                        logger->updateName(name);
+
+                        // need to maintain file count so we can show progress in the UI
+                        size_t numFiles = 0;
+                        for (auto& p : std::filesystem::directory_iterator(outFolder))
+                        {
+                           ++numFiles;
+                        }
+
+                        int i = 0;
+                        std::vector<AudioAnalysis> songParts{};
+                        auto it = std::filesystem::directory_iterator{outFolder};
+                        for (std::filesystem::directory_entry const& entry : it)
+                        {
+                            logger->updateMessage(std::format("Processing: {}%", 100 * ++i / numFiles ));
+                            auto const path = entry.path();
+
+                            auto result = processAudioFile(path);
+                            if (result.has_value())
+                            {
+                                songParts.push_back(result.value());
+                            }
+                            else
+                            {
+                                return std::expected<std::pair<AudioAnalysis, std::filesystem::path>, std::string>(std::unexpect, result.error());
+                            }
+                        }
+
+                        auto sum = std::accumulate(songParts.begin(), songParts.end(), AudioAnalysis{},
+                            [](AudioAnalysis a, AudioAnalysis const& b) {
+                                a.acousticness += b.acousticness;
+                                a.danceability += b.danceability;
+                                a.energy += b.energy;
+                                a.instrumentalness += b.instrumentalness;
+                                a.liveness += b.liveness;
+                                a.loudness += b.loudness;
+                                a.speechiness += b.speechiness;
+                                a.tempo += b.tempo;
+                                a.valence += b.valence;
+
+                                return a;
+                            });
+
+                        sum.acousticness /= static_cast<double>(songParts.size());
+                        sum.danceability /= static_cast<double>(songParts.size());
+                        sum.energy /= static_cast<double>(songParts.size());
+                        sum.instrumentalness /= static_cast<double>(songParts.size());
+                        sum.liveness /= static_cast<double>(songParts.size());
+                        sum.loudness /= static_cast<double>(songParts.size());
+                        sum.speechiness /= static_cast<double>(songParts.size());
+                        sum.tempo /= static_cast<double>(songParts.size());
+                        sum.valence /= static_cast<double>(songParts.size());
+
+                        return std::expected<std::pair<AudioAnalysis, std::filesystem::path>, std::string>{ std::make_pair<AudioAnalysis, std::string> (std::move(sum), std::move(fileName)) };
+                    });
+
+        if (not processResult.has_value()) {
+            logger->setErrorState(processResult.error());
+            return;
+        }
+
+        // TODO: Verify aggregation calculations are correct
+
+        std::pair<AudioAnalysis, std::filesystem::path> const& result = processResult.value();
+
+        auto songInfo = std::make_unique<music::AudioInformation>();
+        songInfo->data = result.first;
+        songInfo->name = result.second.stem();
+
+        Wt::WApplication::UpdateLock uiLock(m_App);
+        if (uiLock) {
+            m_SongView->addSong(std::move(songInfo));
+            logger->setSuccessState();
+            m_App->triggerUpdate();
+        }
+    }
+    catch (std::exception e)
     {
-        logger->setErrorState("Unable to find video id or url.");
-        return;
-    }
-
-    std::string cookieFileArgument{};
-    if (LambdaSnail::services::CookieInfo::hasCookieFile()) {
-        cookieFileArgument = std::format(
-            "--cookies {}", LambdaSnail::services::CookieInfo::getCookieFile().string());
-    }
-
-    std::string const outFolder = std::format("/tmp/music/{}", videoId);
-    // auto xxx = std::format("mkdir {}; yt-dlp -o '/tmp/%(title)s.%(ext)s' {} --restrict-filenames -q -t mp3 {} --exec 'ffmpeg -i {{}} -c copy -map 0 -segment_time 00:00:25 -f segment {}/output%03d.mp3'",
-    //                     outFolder,
-    //                     cookieFileArgument,
-    //                     videoId,
-    //                     outFolder);
-
-    auto const processResult =
-        executeShellCommand(
-            std::format("mkdir -p {}; yt-dlp -o '/tmp/music/%(title)s.%(ext)s' {} --restrict-filenames -q -t mp3 {} --exec 'ffmpeg -i {{}} -c copy -map 0 -segment_time 00:00:25 -f segment {}/output%03d.mp3'",
-                        outFolder,
-                        cookieFileArgument,
-                        videoId,
-                        outFolder))
-            .and_then(
-                [this, &cookieFileArgument, &videoId]([[maybe_unused]] std::string const& result) {
-                    // --get-filename returns .webm even if we use '-t mp3' so hard-code the format
-                    return executeShellCommand(std::format(
-                        "yt-dlp -o '/tmp/music/%(title)s.mp3' {} --restrict-filenames  --get-filename {}",
-                        cookieFileArgument,
-                        videoId));
-            })
-            .and_then(
-                [this, logger, &outFolder](std::string fileName) {
-                    // Files are in /tmp/music/[videoid]/outputXYZ.mp3
-
-                    logger->updateMessage(std::format("Found name of song: {}", fileName ));
-
-                    // need to maintain file count so we can show progress in the UI
-                    size_t numFiles = 0;
-                    for (auto& p : std::filesystem::directory_iterator(outFolder))
-                    {
-                       ++numFiles;
-                    }
-
-                    int i = 0;
-                    std::vector<AudioAnalysis> songParts{};
-                    auto it = std::filesystem::directory_iterator{outFolder};
-                    for (std::filesystem::directory_entry const& entry : it)
-                    {
-                        logger->updateMessage(std::format("Processing: {}%", 100 * ++i / numFiles ));
-                        auto const path = entry.path();
-
-                        auto result = processAudioFile(path);
-                        if (result.has_value())
-                        {
-                            songParts.push_back(result.value());
-                        }
-                        else
-                        {
-                            return std::expected<std::pair<AudioAnalysis, std::string>, std::string>(std::unexpect, result.error());
-                        }
-
-                        // processAudioFile(path).and_then([&songParts](AudioAnalysis a) {
-                        //     songParts.push_back(a);
-                        //     return std::expected<bool, std::string>();
-                        // });
-                    }
-
-                    // std::ranges::for_each(std::filesystem::directory_iterator{outFolder},
-                    //     [this, &i, logger, &songParts, numFiles](std::filesystem::directory_entry const& entry)
-                    //     {
-                    //         logger->updateMessage(std::format("Processing: {}%", 100 * ++i / numFiles ));
-                    //         auto const path = entry.path();
-                    //
-                    //         //if (path.has_extension() and path.extension().compare("mp3") == 0)
-                    //         //if (entry.path().has_extension() and entry.path().extension().compare("mp3") == 0)
-                    //         //{
-                    //         processAudioFile(path).and_then([&songParts](AudioAnalysis a) {
-                    //             songParts.push_back(a);
-                    //             return std::expected<bool, std::string>();
-                    //
-                    //             // TODO: Handle errors
-                    //         });
-                    //             // if (analysis.has_value())
-                    //             // {
-                    //             //     songParts.push_back(analysis.value());
-                    //             // }
-                    //             // else
-                    //             // {
-                    //             //     return analysis;
-                    //             // }
-                    //         //}
-                    //     });
-
-                    auto sum = std::accumulate(songParts.begin(), songParts.end(), AudioAnalysis{},
-                        [](AudioAnalysis a, AudioAnalysis const& b) {
-                            a.acousticness += b.acousticness;
-                            a.danceability += b.danceability;
-                            a.energy += b.energy;
-                            a.instrumentalness += b.instrumentalness;
-                            a.liveness += b.liveness;
-                            a.loudness += b.loudness;
-                            a.speechiness += b.speechiness;
-                            a.tempo += b.tempo;
-                            a.valence += b.valence;
-
-                            return a;
-                        });
-
-                    sum.acousticness /= static_cast<double>(songParts.size());
-                    sum.danceability /= static_cast<double>(songParts.size());
-                    sum.energy /= static_cast<double>(songParts.size());
-                    sum.instrumentalness /= static_cast<double>(songParts.size());
-                    sum.liveness /= static_cast<double>(songParts.size());
-                    sum.loudness /= static_cast<double>(songParts.size());
-                    sum.speechiness /= static_cast<double>(songParts.size());
-                    sum.tempo /= static_cast<double>(songParts.size());
-                    sum.valence /= static_cast<double>(songParts.size());
-
-                    return std::expected<std::pair<AudioAnalysis, std::string>, std::string>{ std::make_pair<AudioAnalysis, std::string> (std::move(sum), std::move(fileName)) };
-                });
-
-    if (not processResult.has_value()) {
-        logger->setErrorState(processResult.error());
-        return;
-    }
-
-    // TODO: Handle rate limitations - https://reccobeats.com/docs/documentation/rate-limiting
-    // TODO: Verify aggregation calculations are correct
-
-    std::pair<AudioAnalysis, std::string> const& result = processResult.value();
-
-    auto songInfo = std::make_unique<music::AudioInformation>();
-    songInfo->data = result.first;
-    songInfo->name = result.second;
-
-    Wt::WApplication::UpdateLock uiLock(m_App);
-    if (uiLock) {
-        m_SongView->addSong(std::move(songInfo));
-        logger->setSuccessState();
-        m_App->triggerUpdate();
+        m_App->log("error") << e.what();
+        logger->setErrorState(s_ServerGenericErrorMessage);
     }
 }
 void LambdaSnail::music::ProcessingPage::processSpotifyId(
     std::string const& urlOrId, ProcessLog* logger)
 {
     logger->updateMessage("Performing analysis, please wait ...");
+
+    if (urlOrId.contains("playlist"))
+    {
+        logger->setErrorState("Playlists are not supported, please try again with a song.");
+        return;
+    }
+
+    if (urlOrId.contains("album"))
+    {
+        logger->setErrorState("Albums are not supported, please try again with a song.");
+        return;
+    }
+
+    if (urlOrId.contains("artist"))
+    {
+        logger->setErrorState("That's an artist, not a song :)");
+        return;
+    }
 
     std::string const spotifyId = m_AudioService->getSpotifyId(urlOrId);
     if (spotifyId.empty())
@@ -313,53 +307,68 @@ void LambdaSnail::music::ProcessingPage::processSpotifyId(
     }
 
     // TODO: Support multiple ids
-    // TODO: Allow paste of entire Spotify url
-    // TODO: Validation
-    std::vector<std::unique_ptr<AudioInformation>> songs {};
-    auto const analysis = m_AudioService->getSpotiyAnalysisResults(spotifyId, songs, m_App);
 
-    if (not analysis)
+    try
     {
-        logger->setErrorState("An error occurred while processing");
-        return;
-    }
+        std::vector<std::unique_ptr<AudioInformation>> songs {};
+        auto const analysis = m_AudioService->getSpotifyAnalysisResults(spotifyId, songs, m_App);
 
-    if (songs.empty())
-    {
-        logger->setSuccessState("Spotify id does not have song data stored. Please use YouTube instead.");
-        return;
-    }
-
-    Wt::WApplication::UpdateLock uiLock(m_App);
-    if (uiLock) {
-        for (auto& song : songs) {
-            m_SongView->addSong(std::move(song));
+        if (not analysis)
+        {
+            logger->setErrorState("An error occurred while processing");
+            return;
         }
 
-        logger->setSuccessState();
-        m_App->triggerUpdate();
+        if (songs.empty())
+        {
+            logger->setSuccessState("Spotify id does not have song data stored. Let's try another one!");
+            return;
+        }
+
+        Wt::WApplication::UpdateLock uiLock(m_App);
+        if (uiLock) {
+            for (auto& song : songs) {
+                m_SongView->addSong(std::move(song));
+            }
+
+            logger->setSuccessState();
+            m_App->triggerUpdate();
+        }
+    }
+    catch (std::exception e)
+    {
+        m_App->log("error") << e.what();
+        logger->setErrorState(s_ServerGenericErrorMessage);
     }
 }
 
 std::expected<LambdaSnail::music::AudioAnalysis, std::string>
 LambdaSnail::music::ProcessingPage::processAudioFile(std::filesystem::path const& filePath)
 {
-    std::ifstream stream(filePath, std::ios::binary | std::ios::ate);
-    if (not stream.is_open()) {
-        return std::unexpected(std::format("Error when opening audio file: {}", filePath.string()));
+    try
+    {
+        std::ifstream stream(filePath, std::ios::binary | std::ios::ate);
+        if (not stream.is_open()) {
+            return std::unexpected(std::format("Error when opening audio file: {}", filePath.string()));
+        }
+
+        size_t stream_size = stream.tellg();
+        std::string buffer(stream_size, '\0');
+        stream.seekg(0);
+
+        if (not stream.read(&buffer[0], static_cast<std::streamoff>(stream_size))) {
+            return std::unexpected(std::format("Error when reading audio file: {}", filePath.string()));
+        }
+
+        stream.close();
+
+        return m_AudioService->getFileAnalysisResults(buffer, m_App);
     }
-
-    size_t stream_size = stream.tellg();
-    std::string buffer(stream_size, '\0');
-    stream.seekg(0);
-
-    if (not stream.read(&buffer[0], static_cast<std::streamoff>(stream_size))) {
-        return std::unexpected(std::format("Error when reading audio file: {}", filePath.string()));
+    catch (std::exception e)
+    {
+        m_App->log("error") << e.what();
+        return std::unexpected(s_ServerGenericErrorMessage);
     }
-
-    stream.close();
-
-    return m_AudioService->getFileAnalysisResults(buffer, m_App);
 }
 
 std::expected<std::string, std::string>
@@ -378,12 +387,18 @@ LambdaSnail::music::ProcessingPage::executeShellCommand(std::string const& comma
         }
     };
 
-    try {
+
+
+    try
+    {
         std::unique_ptr<FILE, decltype(deleter)> pipe(popen(command.c_str(), "r"), deleter);
-        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr) {
+        while (fgets(buffer.data(), sizeof buffer, pipe.get()) != nullptr)
+        {
             result.append(buffer.data());
         }
-    } catch (...) {
+    }
+    catch (...)
+    {
         return std::unexpected("An error occurred while executing a command");
     }
 

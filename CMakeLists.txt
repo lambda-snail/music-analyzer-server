@@ -2,7 +2,7 @@ include(FetchContent)
 
 cmake_minimum_required(VERSION 4.0)
 project(music-analyzer-server
-    VERSION 0.8.5
+    VERSION 0.9.0
 )
 
 set(CMAKE_CXX_STANDARD 23)
@@ -12,7 +12,9 @@ set(LIBWTDBO_PATH /usr/local/lib/libwtdbo.so.4.12.2)
 set(LIBWTDBOSQLITE_PATH /usr/local/lib/libwtdbosqlite3.so.4.12.2)
 set(LIBWTHTTP_PATH /usr/local/lib/libwthttp.so.4.12.2)
 
-find_package(Boost
+#set(Boost_USE_STATIC_LIBS 1)
+
+find_package(Boost 1.88
         REQUIRED
         url
 )
@@ -21,6 +23,7 @@ FetchContent_Declare(
         nlohmann
         GIT_REPOSITORY https://github.com/nlohmann/json.git
         GIT_TAG v3.12.0
+        GIT_SHALLOW ON
 )
 
 FetchContent_MakeAvailable(nlohmann)
@@ -37,6 +40,7 @@ add_executable(music-analyzer-server
         src/services/cookie_info.cpp            src/services/cookie_info.hpp
         src/application/lambda_resource.cpp     src/application/lambda_resource.hpp
         src/models/audio.hpp
+        src/services/load_balancer.cpp          src/services/load_balancer.hpp
 )
 
 #target_compile_options(music-analyzer-server PUBLIC "-fsanitize=undefined")
