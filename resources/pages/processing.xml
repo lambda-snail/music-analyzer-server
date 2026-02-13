@@ -6,20 +6,14 @@
         <div class="collapse m-2" id="help-box">
             <div class="card">
                 <dib class="card-header">
-                    To Ways to Analyze Music!
+                    How to Analyze Music
                 </dib>
                 <div class="card-body">
                     <ul>
-                        <li>You can upload music files (mp3) from the file drop by clicking it or by
-                            drag-and-drop.
-                        </li>
-                        <li>You can also analyze songs by pasting in the id (e.g., "kXYiU_JCYtU") of a YouTube
-                            video
-                            and
-                            pressing the button 'Get from YouTube'. Note that this may take some time if the
-                            video
-                            is large.
-                        </li>
+                        <li>Choose a song that you are interested in from Spotify.</li>
+                        <li>Copy the url into the empty field below. The url should look like this: <a href="https://open.spotify.com/track/7a9UUo3zfID7Ik2fTQjRLi">https://open.spotify.com/track/7a9UUo3zfID7Ik2fTQjRLi</a> and must have the <i>track</i> in it.</li>
+                        <li>Press "Analyze" to fetch the song data - if it exists. Not all songs have data, unfortunately, so if your chosen song does not have any data let's try another one!</li>
+                        <li>Repeat this for as many songs as you need, and finally press the "Download Data" button to download your data.</li>
                     </ul>
                 </div>
             </div>
