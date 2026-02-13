@@ -39,7 +39,7 @@ void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t
     m_SourceSelector = t->bindNew<Wt::WComboBox>("music-source-dropdown");
     m_SourceSelector->addStyleClass("w-25");
     m_SourceSelector->addItem("Spotify");
-    m_SourceSelector->addItem("YouTube");
+    //m_SourceSelector->addItem("YouTube"); // TODO: Add this to re-enable yt-dlp support
     m_SourceSelector->setCurrentIndex(static_cast<size_t>(MusicSource::Spotify));
 
     auto* button = t->bindNew<Wt::WPushButton>("yt-button", "Analyze");
@@ -65,8 +65,6 @@ void LambdaSnail::music::ProcessingPage::setupYoutubeProcessing(Wt::WTemplate* t
 }
 void LambdaSnail::music::ProcessingPage::setupFileDrop(Wt::WTemplate* t)
 {
-    m_SongView = t->bindNew<SongView>("file-list");
-
     m_FileDrop = t->bindNew<Wt::WFileDropWidget>("file-drop");
     m_FileDrop->addNew<Wt::WText>("Drop Files Here");
     m_FileDrop->setToolTip(
@@ -76,8 +74,6 @@ void LambdaSnail::music::ProcessingPage::setupFileDrop(Wt::WTemplate* t)
     m_FileDrop->addStyleClass("d-flex");
     m_FileDrop->addStyleClass("justify-content-center");
     m_FileDrop->setAcceptDirectories(false);
-
-    m_LogContainer = t->bindNew<Wt::WContainerWidget>("process-log");
 
     m_FileDrop->uploaded().connect([this](Wt::WFileDropWidget::File* file) {
         // Stub to test file processing
@@ -137,7 +133,12 @@ LambdaSnail::music::ProcessingPage::ProcessingPage(
 
     setupCsvConversion(t);
 
-    setupFileDrop(t);
+    // TODO: Comment back in to re-enable file-drop support (requires yt-dlp)
+    t->bindEmpty("file-drop");
+    //setupFileDrop(t);
+
+    m_LogContainer = t->bindNew<Wt::WContainerWidget>("process-log");
+    m_SongView = t->bindNew<SongView>("file-list");
 }
 
 LambdaSnail::music::ProcessLog*
