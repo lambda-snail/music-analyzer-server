@@ -321,7 +321,7 @@ void LambdaSnail::music::ProcessingPage::processSpotifyId(
 
         if (songs.empty())
         {
-            logger->setSuccessState("Spotify id does not have song data stored. Please use YouTube instead.");
+            logger->setSuccessState("Spotify id does not have song data stored. Let's try another one!");
             return;
         }
 
