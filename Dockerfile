@@ -22,14 +22,14 @@ RUN apt-get update && \
 # Comment in the following two rows for youtube support
 #ADD https://github.com/yt-dlp/yt-dlp/releases/download/2026.02.04/yt-dlp /usr/local/bin
 #RUN apt-get update && \
-#    apt-get -y --no-install-recommends install curl unzip python3 && \
+#    apt-get -y --no-install-recommends install curl unzip ffmpeg python3 && \
 #    chmod a+rx /usr/local/bin/yt-dlp && \
 #    curl -fsSL https://deno.land/install.sh | sh -s -- -y && \
 #    ln /root/.deno/bin/deno /usr/bin && \
 #    apt-get remove -y curl unzip
 
 RUN apt-get update && \
-    apt-get -y --no-install-recommends install ffmpeg libboost-thread${BOOST_VERSION} libboost-filesystem${BOOST_VERSION} libboost-program-options${BOOST_VERSION} libboost-url${BOOST_VERSION} && \
+    apt-get -y --no-install-recommends install libboost-thread${BOOST_VERSION} libboost-filesystem${BOOST_VERSION} libboost-program-options${BOOST_VERSION} libboost-url${BOOST_VERSION} && \
     apt-get -y --no-install-recommends install ./music-analyzer-server-${DEB_VERSION}-Linux.deb && \
     # Cleanup stage to ensure minimal image \
     apt-get autoremove -y && \
