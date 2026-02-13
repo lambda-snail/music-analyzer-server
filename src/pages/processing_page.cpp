@@ -281,6 +281,24 @@ void LambdaSnail::music::ProcessingPage::processSpotifyId(
 {
     logger->updateMessage("Performing analysis, please wait ...");
 
+    if (urlOrId.contains("playlist"))
+    {
+        logger->setErrorState("Playlists are not supported, please try again with a song.");
+        return;
+    }
+
+    if (urlOrId.contains("album"))
+    {
+        logger->setErrorState("Albums are not supported, please try again with a song.");
+        return;
+    }
+
+    if (urlOrId.contains("artist"))
+    {
+        logger->setErrorState("That's an artist, not a song :)");
+        return;
+    }
+
     std::string const spotifyId = m_AudioService->getSpotifyId(urlOrId);
     if (spotifyId.empty())
     {
